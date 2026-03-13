@@ -1,0 +1,14 @@
+cd /home/cgus/Escritorio/2DAW/desarrollo\ web\ entorno\ servidor/backend-memoWorks && mvn -B -DskipTests package# Ignorar directorios y archivos innecesarios para la imagen
+target/
+.git
+.gitignore
+.idea
+.vscode
+uploads/
+*.md
+*.iml
+
+# Excluir cualquier archivo temporal
+**/temp/
+**/*.log
+
