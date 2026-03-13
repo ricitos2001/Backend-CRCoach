@@ -59,6 +59,7 @@ replay_pid*
 
 # Environment files
 .env
+.env.example
 
 # Node
 node_modules/
