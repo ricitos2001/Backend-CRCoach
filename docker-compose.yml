@@ -1,10 +1,10 @@
 version: "3.9"
 
 services:
-  memoWorks:
+  Backend-CRCoach:
     env_file:
       - .env
-    container_name: backend-memoworks
+    container_name: backend-crcoach
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
@@ -27,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ricitosdeoro2001/backend-memoworks:latest
+    image: ricitosdeoro2001/backend-crcoach:latest
     restart: unless-stopped
     ports:
       - "${PORT}:8080"
@@ -38,10 +38,10 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
       SERVER_PORT: 8080
     depends_on:
-      memoWorks:
+      Backend-CRCoach:
         condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
 
 volumes:
-  memoWorks_db_data: {}
+  CRCoach_db_data: {}
