@@ -1,0 +1,52 @@
+name: Deploy API docs to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+    contents: write
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build project
+        run: mvn -B -DskipTests package
+
+      - name: Run application in background
+        run: |
+          nohup java -jar target/*-SNAPSHOT.jar > app.log 2>&1 &
+          echo $! > app.pid
+
+      - name: Wait for OpenAPI endpoint and download
+        run: |
+          for i in {1..30}; do
+            echo "Trying to fetch OpenAPI spec (attempt $i)..."
+            if curl -sS https://backend-memoworks.onrender.com/v3/api-docs -o docs/openapi.json; then
+              echo "Downloaded openapi.json"
+              break
+            fi
+            sleep 2
+          done
+          if [ ! -f docs/openapi.json ]; then
+            echo "Failed to download openapi.json" >&2
+            cat app.log || true
+            exit 1
+          fi
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+
