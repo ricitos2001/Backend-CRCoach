@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.example.backendcrcoach.domain.dto.principal_system_dtos.user.UserRequestDTO;
 import org.example.backendcrcoach.domain.entities.principal_system_entities.User;
 import org.example.backendcrcoach.security.dto.AuthResponse;
+import org.example.backendcrcoach.security.dto.SupercellAuthDTO;
 import org.example.backendcrcoach.security.dto.UserLoginDTO;
 import org.example.backendcrcoach.security.jwt.JwtUtil;
 import org.example.backendcrcoach.security.user.CustomUserDetails;
@@ -112,7 +113,7 @@ public class AuthController {
     }
 
     @PostMapping("/supercell")
-    public AuthResponse authenticateWithSupercell(@RequestBody @Valid org.example.backendcrcoach.security.dto.SupercellAuthDTO dto) {
+    public AuthResponse authenticateWithSupercell(@RequestBody @Valid SupercellAuthDTO dto) {
         if (dto.getPlayerTag() == null || dto.getPlayerTag().isEmpty()) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "playerTag es obligatorio");
         }
