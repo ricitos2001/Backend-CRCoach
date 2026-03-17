@@ -6,7 +6,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.backendcrcoach.security.user.CustomUserDetailsService;
-import org.example.backendcrcoach.services.security_services.TokenBlacklistService;
+import org.example.backendcrcoach.services.other_services.TokenBlacklistService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;

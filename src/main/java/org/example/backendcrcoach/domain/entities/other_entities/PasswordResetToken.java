@@ -1,4 +1,4 @@
-package org.example.backendcrcoach.domain.entities.security_entities;
+package org.example.backendcrcoach.domain.entities.other_entities;
 
 import jakarta.persistence.*;
 import lombok.*;

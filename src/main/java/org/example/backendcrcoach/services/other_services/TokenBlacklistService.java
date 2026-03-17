@@ -1,4 +1,4 @@
-package org.example.backendcrcoach.services.security_services;
+package org.example.backendcrcoach.services.other_services;
 
 import org.springframework.stereotype.Service;
 

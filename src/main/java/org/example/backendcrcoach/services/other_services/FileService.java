@@ -1,4 +1,4 @@
-package org.example.backendcrcoach.services.security_services;
+package org.example.backendcrcoach.services.other_services;
 
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
