@@ -6,7 +6,7 @@ import org.example.backendcrcoach.domain.dto.principal_system_dtos.user.UserResp
 import org.example.backendcrcoach.domain.entities.principal_system_entities.User;
 import org.example.backendcrcoach.mappers.principal_system_mappers.UserMapper;
 import org.example.backendcrcoach.repositories.principal_system_repositories.UserRepository;
-import org.example.backendcrcoach.services.security_services.FileService;
+import org.example.backendcrcoach.services.other_services.FileService;
 import org.example.backendcrcoach.services.communication_services.EmailService;
 import org.example.backendcrcoach.web.exceptions.other_exceptions.ResourceNotFoundException;
 import org.example.backendcrcoach.web.exceptions.principal_system_exceptions.user.DuplicatedUserException;
@@ -38,14 +38,12 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final FileService fileService;
     private final EmailService emailService;
-    private final PlayerProfileService playerProfileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileService fileService, EmailService emailService, PlayerProfileService playerProfileService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileService fileService, EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileService = fileService;
         this.emailService = emailService;
-        this.playerProfileService = playerProfileService;
     }
 
     public Page<UserResponseDTO> list(Pageable pageable) {
@@ -170,6 +168,7 @@ public class UserService {
             User user = UserMapper.toEntity(dto);
             user.setPasswordHash(passwordEncoder.encode(dto.getPasswordHash()));
             User savedUser = userRepository.save(user);
+
             // enviar correo de registro
             try {
                 String subject = "Bienvenido a CRCoach";
@@ -235,5 +234,12 @@ public class UserService {
 
     public User obtenerUsuarioPorId(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(USUARIO_NO_ENCONTRADO_CON + "id " + id));
+    }
+
+    // Vincular playerTag al usuario autenticado
+    public void bindPlayerTagToCurrentUser(String tag) {
+        User usuario = obtenerMiPerfil();
+        usuario.setPlayerTag(tag);
+        userRepository.save(usuario);
     }
 }
