@@ -1,7 +1,7 @@
 package org.example.backendcrcoach.security.user;
 
-import org.example.backendcrcoach.domain.entities.principal_system_entities.User;
-import org.example.backendcrcoach.repositories.principal_system_repositories.UserRepository;
+import org.example.backendcrcoach.domain.entities.User;
+import org.example.backendcrcoach.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

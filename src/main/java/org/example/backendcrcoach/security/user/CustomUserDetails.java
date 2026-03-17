@@ -1,6 +1,6 @@
 package org.example.backendcrcoach.security.user;
 
-import org.example.backendcrcoach.domain.entities.principal_system_entities.User;
+import org.example.backendcrcoach.domain.entities.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

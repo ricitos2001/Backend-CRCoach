@@ -4,16 +4,16 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.example.backendcrcoach.domain.dto.principal_system_dtos.user.UserRequestDTO;
-import org.example.backendcrcoach.domain.entities.principal_system_entities.User;
+import org.example.backendcrcoach.domain.dto.UserRequestDTO;
+import org.example.backendcrcoach.domain.entities.User;
 import org.example.backendcrcoach.security.dto.AuthResponse;
 import org.example.backendcrcoach.security.dto.SupercellAuthDTO;
 import org.example.backendcrcoach.security.dto.UserLoginDTO;
 import org.example.backendcrcoach.security.jwt.JwtUtil;
 import org.example.backendcrcoach.security.user.CustomUserDetails;
-import org.example.backendcrcoach.services.other_services.SupercellService;
-import org.example.backendcrcoach.services.other_services.TokenBlacklistService;
-import org.example.backendcrcoach.services.principal_system_services.UserService;
+import org.example.backendcrcoach.services.SupercellService;
+import org.example.backendcrcoach.services.TokenBlacklistService;
+import org.example.backendcrcoach.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -125,7 +125,7 @@ public class AuthController {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_GATEWAY, "No se pudo verificar el token de Supercell: " + e.getMessage());
         }
 
-        org.example.backendcrcoach.domain.entities.principal_system_entities.User user = supercellService.findOrCreateUserFromSupercellData(playerData);
+        User user = supercellService.findOrCreateUserFromSupercellData(playerData);
         String token = jwtUtil.generateToken(new org.example.backendcrcoach.security.user.CustomUserDetails(user));
         return new AuthResponse(token);
     }

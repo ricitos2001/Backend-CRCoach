@@ -1,6 +1,5 @@
 package org.example.backendcrcoach.web.exceptions;
 
-import org.example.backendcrcoach.web.exceptions.communication_exceptions.notifications.DuplicatedNotificationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
