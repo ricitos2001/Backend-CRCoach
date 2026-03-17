@@ -8,7 +8,7 @@ import org.example.backendcrcoach.mappers.principal_system_mappers.UserMapper;
 import org.example.backendcrcoach.repositories.principal_system_repositories.UserRepository;
 import org.example.backendcrcoach.services.security_services.FileService;
 import org.example.backendcrcoach.services.communication_services.EmailService;
-import org.example.backendcrcoach.web.exceptions.security_exceptions.ResourceNotFoundException;
+import org.example.backendcrcoach.web.exceptions.other_exceptions.ResourceNotFoundException;
 import org.example.backendcrcoach.web.exceptions.principal_system_exceptions.user.DuplicatedUserException;
 import org.example.backendcrcoach.web.exceptions.principal_system_exceptions.user.UserNotFoundException;
 import org.springframework.core.io.Resource;
