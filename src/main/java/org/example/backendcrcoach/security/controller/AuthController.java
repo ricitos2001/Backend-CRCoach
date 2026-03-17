@@ -7,11 +7,9 @@ import jakarta.validation.Valid;
 import org.example.backendcrcoach.domain.dto.UserRequestDTO;
 import org.example.backendcrcoach.domain.entities.User;
 import org.example.backendcrcoach.security.dto.AuthResponse;
-import org.example.backendcrcoach.security.dto.SupercellAuthDTO;
 import org.example.backendcrcoach.security.dto.UserLoginDTO;
 import org.example.backendcrcoach.security.jwt.JwtUtil;
 import org.example.backendcrcoach.security.user.CustomUserDetails;
-import org.example.backendcrcoach.services.SupercellService;
 import org.example.backendcrcoach.services.TokenBlacklistService;
 import org.example.backendcrcoach.services.UserService;
 import org.springframework.http.ResponseEntity;
@@ -33,15 +31,12 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final UserService userService;
     private final TokenBlacklistService tokenBlacklistService;
-    private final SupercellService supercellService;
 
-
-    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService, TokenBlacklistService tokenBlacklistService, SupercellService supercellService) {
+    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService, TokenBlacklistService tokenBlacklistService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
         this.tokenBlacklistService = tokenBlacklistService;
-        this.supercellService = supercellService;
     }
 
     @PostMapping("/authenticate")
@@ -109,24 +104,6 @@ public class AuthController {
         String token = jwtUtil.generateToken(new CustomUserDetails(newUser));
 
         // Devolver el token en la respuesta
-        return new AuthResponse(token);
-    }
-
-    @PostMapping("/supercell")
-    public AuthResponse authenticateWithSupercell(@RequestBody @Valid SupercellAuthDTO dto) {
-        if (dto.getPlayerTag() == null || dto.getPlayerTag().isEmpty()) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "playerTag es obligatorio");
-        }
-
-        Map<String, Object> playerData;
-        try {
-            playerData = supercellService.getPlayerInfoByTag(dto.getPlayerTag(), dto.getSupercellToken());
-        } catch (Exception e) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_GATEWAY, "No se pudo verificar el token de Supercell: " + e.getMessage());
-        }
-
-        User user = supercellService.findOrCreateUserFromSupercellData(playerData);
-        String token = jwtUtil.generateToken(new org.example.backendcrcoach.security.user.CustomUserDetails(user));
         return new AuthResponse(token);
     }
 }

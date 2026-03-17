@@ -24,7 +24,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
 
     Optional<User> findUserByEmail(String email);
-    
-    // Buscar usuario por su playerTag de Supercell (etiqueta única dentro del sistema)
-    Optional<User> findByPlayerTag(String playerTag);
 }
