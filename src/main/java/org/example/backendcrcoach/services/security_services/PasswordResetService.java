@@ -1,8 +1,8 @@
-package org.example.backendcrcoach.services.other_services;
+package org.example.backendcrcoach.services.security_services;
 
-import org.example.backendcrcoach.domain.entities.other_entities.PasswordResetToken;
+import org.example.backendcrcoach.domain.entities.security_entities.PasswordResetToken;
 import org.example.backendcrcoach.domain.entities.principal_system_entities.User;
-import org.example.backendcrcoach.repositories.other_repositories.PasswordResetTokenRepository;
+import org.example.backendcrcoach.repositories.password_security_repositories.PasswordResetTokenRepository;
 import org.example.backendcrcoach.repositories.principal_system_repositories.UserRepository;
 import org.example.backendcrcoach.services.communication_services.EmailService;
 import org.slf4j.Logger;

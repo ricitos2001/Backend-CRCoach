@@ -1,9 +1,9 @@
-package org.example.backendcrcoach.web.controllers.other_controllers;
+package org.example.backendcrcoach.web.controllers.security_controllers;
 
 import jakarta.validation.Valid;
-import org.example.backendcrcoach.domain.dto.other_dtos.PasswordForgotRequestDTO;
-import org.example.backendcrcoach.domain.dto.other_dtos.PasswordResetConfirmDTO;
-import org.example.backendcrcoach.services.other_services.PasswordResetService;
+import org.example.backendcrcoach.domain.dto.security_dtos.PasswordForgotRequestDTO;
+import org.example.backendcrcoach.domain.dto.security_dtos.PasswordResetConfirmDTO;
+import org.example.backendcrcoach.services.security_services.PasswordResetService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;

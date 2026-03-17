@@ -1,4 +1,4 @@
-package org.example.backendcrcoach.services.other_services;
+package org.example.backendcrcoach.services.security_services;
 
 import org.example.backendcrcoach.domain.entities.principal_system_entities.User;
 import org.example.backendcrcoach.repositories.principal_system_repositories.UserRepository;
