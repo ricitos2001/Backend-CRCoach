@@ -3,8 +3,10 @@ package org.example.backendcrcoach.services;
 import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.UserRequestDTO;
 import org.example.backendcrcoach.domain.dto.UserResponseDTO;
+import org.example.backendcrcoach.domain.entities.PlayerProfile;
 import org.example.backendcrcoach.domain.entities.User;
 import org.example.backendcrcoach.mappers.UserMapper;
+import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.example.backendcrcoach.repositories.UserRepository;
 import org.example.backendcrcoach.web.exceptions.ResourceNotFoundException;
 import org.example.backendcrcoach.web.exceptions.DuplicatedUserException;
@@ -36,12 +38,21 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final FileService fileService;
     private final EmailService emailService;
+    private final PlayerProfileService playerProfileService;
+    private final PlayerProfileRepository playerProfileRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileService fileService, EmailService emailService) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       FileService fileService,
+                       EmailService emailService,
+                       PlayerProfileService playerProfileService,
+                       PlayerProfileRepository playerProfileRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileService = fileService;
         this.emailService = emailService;
+        this.playerProfileService = playerProfileService;
+        this.playerProfileRepository = playerProfileRepository;
     }
 
     public Page<UserResponseDTO> list(Pageable pageable) {
@@ -90,6 +101,7 @@ public class UserService {
         User user = UserMapper.toEntity(dto);
         if (user.getUsername() != null) user.setUsername(user.getUsername().toLowerCase());
         if (user.getEmail() != null) user.setEmail(user.getEmail().toLowerCase());
+        user.setPlayerTag(null);
         if (dto.getPasswordHash() != null) user.setPasswordHash(passwordEncoder.encode(dto.getPasswordHash()));
 
         User savedUser = userRepository.save(user);
@@ -142,7 +154,7 @@ public class UserService {
         Optional.ofNullable(user.getAvatarUrl()).ifPresent(updatedUser::setAvatarUrl);
         Optional.ofNullable(user.getRole()).ifPresent(updatedUser::setRole);
         Optional.ofNullable(user.getCreatedAt()).ifPresent(updatedUser::setCreatedAt);
-        Optional.ofNullable(user.getPlayerTag()).ifPresent(updatedUser::setPlayerTag);
+        // El perfil de Clash se vincula en un endpoint dedicado tras registro.
         Optional.ofNullable(user.getEnabled()).ifPresent(updatedUser::setEnabled);
     }
 
@@ -165,6 +177,7 @@ public class UserService {
         } else {
             User user = UserMapper.toEntity(dto);
             user.setPasswordHash(passwordEncoder.encode(dto.getPasswordHash()));
+            user.setPlayerTag(null);
             User savedUser = userRepository.save(user);
 
             // enviar correo de registro
@@ -183,8 +196,6 @@ public class UserService {
             return savedUser;
         }
     }
-
-    /******************************************************************************************************/
 
     public User obtenerMiPerfil() {
         // Obtener contexto de autenticación actual
@@ -234,10 +245,33 @@ public class UserService {
         return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(USUARIO_NO_ENCONTRADO_CON + "id " + id));
     }
 
-    // Vincular playerTag al usuario autenticado
     public void bindPlayerTagToCurrentUser(String tag) {
         User usuario = obtenerMiPerfil();
-        usuario.setPlayerTag(tag);
+        String normalizedTag = normalizeTag(tag);
+
+        if (userRepository.existsByPlayerTagAndIdNot(normalizedTag, usuario.getId())) {
+            throw new IllegalArgumentException("El playerTag ya esta vinculado a otra cuenta.");
+        }
+
+        PlayerProfile profile = playerProfileRepository.findByTag(normalizedTag)
+                .orElseGet(() -> {
+                    // 1) Comprueba en API Supercell y guarda en BD si existe.
+                    playerProfileService.getPlayer(normalizedTag.substring(1));
+                    return playerProfileRepository.findByTag(normalizedTag)
+                            .orElseThrow(() -> new IllegalArgumentException("No se pudo almacenar el perfil del jugador."));
+                });
+
+        // 2) Vincula el perfil almacenado a la cuenta del usuario.
+        usuario.setPlayerTag(profile.getTag());
+        usuario.setPlayerProfile(profile);
         userRepository.save(usuario);
+    }
+
+    private String normalizeTag(String tag) {
+        if (tag == null || tag.isBlank()) {
+            throw new IllegalArgumentException("El playerTag no puede estar vacio.");
+        }
+        String normalized = tag.trim().toUpperCase();
+        return normalized.startsWith("#") ? normalized : "#" + normalized;
     }
 }

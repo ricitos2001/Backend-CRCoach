@@ -16,6 +16,6 @@ public class UserResponseDTO {
     private String avatarUrl;
     private Role role;
     private LocalDateTime createdAt;
-    private String playerProfiles;
+    private String playerTag;
     private Boolean enabled;
 }

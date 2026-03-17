@@ -19,7 +19,7 @@ public class PlayerProfile {
     @Column(nullable = false, unique = true)
     private String tag;
 
-    @Column(nullable = false)
+    @Column(name = "player_name", nullable = false)
     private String name;
 
     @Column(nullable = false)
