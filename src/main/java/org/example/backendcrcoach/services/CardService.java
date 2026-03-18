@@ -119,6 +119,33 @@ public class CardService {
             imported++;
         }
 
+        if (root.has("supportItems") && root.get("supportItems").isArray()) {
+            for (JsonNode node : root.get("supportItems")) {
+                Integer cardId = readInteger(node, "id");
+                if (cardId == null) continue;
+                if (cardRepository.existsByCardId(cardId)) continue;
+
+                Card card = new Card();
+                card.setCardId(cardId);
+                card.setName(readText(node, "name"));
+                card.setMaxLevel(readInteger(node, "maxLevel"));
+                card.setMaxEvolutionLevel(readInteger(node, "maxEvolutionLevel"));
+                card.setRarity(readText(node, "rarity"));
+                card.setElixirCost(readInteger(node, "elixirCost"));
+
+                JsonNode iconNode = node.get("iconUrls");
+                if (iconNode != null && !iconNode.isNull()) {
+                    IconUrl icon = new IconUrl();
+                    icon.setMedium(readText(iconNode, "medium"));
+                    icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
+                    card.setIconUrl(icon);
+                }
+
+                cardRepository.save(card);
+                imported++;
+            }
+        }
+
         log.info("Imported {} cards from API", imported);
         return imported;
     }
