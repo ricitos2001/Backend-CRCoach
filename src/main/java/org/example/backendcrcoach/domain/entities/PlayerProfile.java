@@ -19,12 +19,13 @@ public class PlayerProfile {
     @Column(nullable = false, unique = true)
     private String tag;
 
-    @Column(name = "player_name", nullable = false)
+    @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
     private Integer expLevel;
 
+    //SNAPSHOT DE ESTADÍSTICAS
     @Column(nullable = false)
     private Integer trophies;
 
@@ -42,6 +43,7 @@ public class PlayerProfile {
 
     @Column(nullable = false)
     private Integer threeCrownWins;
+    //SNAPSHOT DE ESTADÍSTICAS
 
     @Column(nullable = false)
     private Integer challengeCardsWon;
