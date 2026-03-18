@@ -3,6 +3,7 @@ package org.example.backendcrcoach.web.controllers;
 import jakarta.validation.Valid;
 import org.example.backendcrcoach.domain.dto.PlayerProfileRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerProfileResponseDTO;
+import org.example.backendcrcoach.domain.dto.PlayerTagBindRequestDTO;
 import org.example.backendcrcoach.services.PlayerProfileService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -56,6 +57,12 @@ public class PlayerProfileController {
     @GetMapping("/player/{tag}")
     public ResponseEntity<PlayerProfileResponseDTO> getPlayer(@PathVariable String tag) {
         PlayerProfileResponseDTO playerProfile = playerProfileService.getPlayer(tag);
+        return ResponseEntity.ok(playerProfile);
+    }
+
+    @PostMapping(path = "/player/bind", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PlayerProfileResponseDTO> getPlayerAndBind(@RequestBody PlayerTagBindRequestDTO request) {
+        PlayerProfileResponseDTO playerProfile = playerProfileService.getPlayerAndBindToEmail(request.getTag(), request.getEmail());
         return ResponseEntity.ok(playerProfile);
     }
 }
