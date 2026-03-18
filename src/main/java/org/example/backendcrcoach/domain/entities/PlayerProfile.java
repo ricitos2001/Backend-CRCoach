@@ -2,6 +2,10 @@ package org.example.backendcrcoach.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+import org.example.backendcrcoach.domain.entities.PlayerCard;
 
 @Entity
 @Getter
@@ -108,13 +112,24 @@ public class PlayerProfile {
     @Column(columnDefinition = "TEXT")
     private String achievements;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String cards;
+    @OneToMany(mappedBy = "playerProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PlayerCard> playerCards;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String supportCards;
+    // supportCards is a derived view over playerCards where supportCard == true
+    public List<PlayerCard> getSupportCards() {
+        if (this.playerCards == null) return null;
+        return this.playerCards.stream().filter(c -> Boolean.TRUE.equals(c.getSupportCard())).collect(Collectors.toList());
+    }
+
+    public void setSupportCards(List<PlayerCard> supportCards) {
+        if (supportCards == null) return;
+        if (this.playerCards == null) this.playerCards = new ArrayList<>();
+        for (PlayerCard pc : supportCards) {
+            pc.setSupportCard(true);
+            pc.setPlayerProfile(this);
+            this.playerCards.add(pc);
+        }
+    }
 
     @Lob
     @Column(columnDefinition = "TEXT")
@@ -143,5 +158,7 @@ public class PlayerProfile {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String progress;
+
+
 }
 

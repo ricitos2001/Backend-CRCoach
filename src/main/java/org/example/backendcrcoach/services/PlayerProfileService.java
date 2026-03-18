@@ -14,6 +14,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.bind.annotation.RequestBody;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+// ...existing code...
+import org.example.backendcrcoach.domain.entities.PlayerCard;
+import org.example.backendcrcoach.domain.entities.IconUrl;
+import java.util.ArrayList;
+import java.util.List;
+import org.example.backendcrcoach.services.PlayerCardService;
 
 import java.util.Optional;
 
@@ -23,6 +29,7 @@ public class PlayerProfileService {
 
     private final PlayerProfileRepository playerProfileRepository;
     private final SnapshotService snapshotService;
+    private final PlayerCardService playerCardService;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final BattleService battleService;
@@ -33,7 +40,8 @@ public class PlayerProfileService {
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
-            BattleService battleService) {
+            BattleService battleService,
+            PlayerCardService playerCardService) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
@@ -41,6 +49,7 @@ public class PlayerProfileService {
                 .defaultHeader("Authorization", "Bearer " + API_KEY)
                 .build();
         this.battleService = battleService;
+        this.playerCardService = playerCardService;
     }
 
     public Page<PlayerProfileResponseDTO> list(Pageable pageable) {
@@ -104,7 +113,7 @@ public class PlayerProfileService {
         Optional.ofNullable(dto.getLeagueStatistics()).ifPresent(profile::setLeagueStatistics);
         Optional.ofNullable(dto.getBadges()).ifPresent(profile::setBadges);
         Optional.ofNullable(dto.getAchievements()).ifPresent(profile::setAchievements);
-        Optional.ofNullable(dto.getCards()).ifPresent(profile::setCards);
+        Optional.ofNullable(dto.getPlayerCards()).ifPresent(profile::setPlayerCards);
         Optional.ofNullable(dto.getSupportCards()).ifPresent(profile::setSupportCards);
         Optional.ofNullable(dto.getCurrentDeck()).ifPresent(profile::setCurrentDeck);
         Optional.ofNullable(dto.getCurrentDeckSupportCards()).ifPresent(profile::setCurrentDeckSupportCards);
@@ -147,6 +156,8 @@ public class PlayerProfileService {
                 }).orElseGet(() -> playerProfileRepository.save(playerProfile));
 
         snapshotService.saveSnapshot(savedProfile);
+        // Guardar las playerCards importadas/parseadas en el perfil (comportamiento similar a saveSnapshot)
+        playerCardService.saveCardsFromProfile(savedProfile);
         battleService.importBattlesForPlayer(playerTag);
         return PlayerProfileMapper.toDTO(savedProfile);
     }
@@ -184,8 +195,69 @@ public class PlayerProfileService {
         profile.setLeagueStatistics(readJsonText(json, "leagueStatistics"));
         profile.setBadges(readJsonText(json, "badges"));
         profile.setAchievements(readJsonText(json, "achievements"));
-        profile.setCards(readJsonText(json, "cards"));
-        profile.setSupportCards(readJsonText(json, "supportCards"));
+
+        // Parse cards array into List<PlayerCard>
+        JsonNode cardsNode = json.get("cards");
+        if (cardsNode != null && cardsNode.isArray()) {
+            List<PlayerCard> cardList = new ArrayList<>();
+            for (JsonNode c : cardsNode) {
+                PlayerCard card = new PlayerCard();
+                card.setCardId(c.has("id") && !c.get("id").isNull() ? c.get("id").asInt() : null);
+                card.setName(c.has("name") && !c.get("name").isNull() ? c.get("name").asText() : null);
+                card.setLevel(c.has("level") && !c.get("level").isNull() ? c.get("level").asInt() : null);
+                card.setMaxLevel(c.has("maxLevel") && !c.get("maxLevel").isNull() ? c.get("maxLevel").asInt() : null);
+                card.setMaxEvolutionLevel(c.has("maxEvolutionLevel") && !c.get("maxEvolutionLevel").isNull() ? c.get("maxEvolutionLevel").asInt() : null);
+                card.setRarity(c.has("rarity") && !c.get("rarity").isNull() ? c.get("rarity").asText() : null);
+                card.setCount(c.has("count") && !c.get("count").isNull() ? c.get("count").asInt() : null);
+                card.setElixirCost(c.has("elixirCost") && !c.get("elixirCost").isNull() ? c.get("elixirCost").asInt() : null);
+
+                // iconUrls object
+                JsonNode iconNode = c.get("iconUrls");
+                if (iconNode != null && !iconNode.isNull()) {
+                    IconUrl iconUrl = new IconUrl();
+                    iconUrl.setMedium(iconNode.has("medium") && !iconNode.get("medium").isNull() ? iconNode.get("medium").asText() : null);
+                    iconUrl.setEvolutionMedium(iconNode.has("evolutionMedium") && !iconNode.get("evolutionMedium").isNull() ? iconNode.get("evolutionMedium").asText() : null);
+                    card.setIconUrl(iconUrl);
+                }
+
+                // Marcar relación y flag
+                card.setPlayerProfile(profile);
+                card.setSupportCard(false);
+
+                cardList.add(card);
+            }
+            profile.setPlayerCards(cardList);
+        } else {
+            profile.setPlayerCards(null);
+        }
+        // Parse supportCards array into List<PlayerCard> with supportCard=true
+        JsonNode supportNode = json.get("supportCards");
+        if (supportNode != null && supportNode.isArray()) {
+            List<PlayerCard> supportList = new ArrayList<>();
+            for (JsonNode s : supportNode) {
+                PlayerCard card = new PlayerCard();
+                card.setCardId(s.has("id") && !s.get("id").isNull() ? s.get("id").asInt() : null);
+                card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asText() : null);
+                card.setLevel(s.has("level") && !s.get("level").isNull() ? s.get("level").asInt() : null);
+                card.setMaxLevel(s.has("maxLevel") && !s.get("maxLevel").isNull() ? s.get("maxLevel").asInt() : null);
+                card.setMaxEvolutionLevel(s.has("maxEvolutionLevel") && !s.get("maxEvolutionLevel").isNull() ? s.get("maxEvolutionLevel").asInt() : null);
+                card.setRarity(s.has("rarity") && !s.get("rarity").isNull() ? s.get("rarity").asText() : null);
+                card.setCount(s.has("count") && !s.get("count").isNull() ? s.get("count").asInt() : null);
+                card.setElixirCost(s.has("elixirCost") && !s.get("elixirCost").isNull() ? s.get("elixirCost").asInt() : null);
+                JsonNode iconNode2 = s.get("iconUrls");
+                if (iconNode2 != null && !iconNode2.isNull()) {
+                    IconUrl iconUrl2 = new IconUrl();
+                    iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? iconNode2.get("medium").asText() : null);
+                    iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? iconNode2.get("evolutionMedium").asText() : null);
+                    card.setIconUrl(iconUrl2);
+                }
+                card.setSupportCard(true);
+                supportList.add(card);
+            }
+            profile.setSupportCards(supportList);
+        } else {
+            profile.setSupportCards(null);
+        }
         profile.setCurrentDeck(readJsonText(json, "currentDeck"));
         profile.setCurrentDeckSupportCards(readJsonText(json, "currentDeckSupportCards"));
         profile.setCurrentFavouriteCard(readJsonText(json, "currentFavouriteCard"));

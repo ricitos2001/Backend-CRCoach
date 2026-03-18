@@ -37,7 +37,7 @@ public class PlayerProfileMapper {
         profile.setLeagueStatistics(dto.getLeagueStatistics());
         profile.setBadges(dto.getBadges());
         profile.setAchievements(dto.getAchievements());
-        profile.setCards(dto.getCards());
+        profile.setPlayerCards(dto.getPlayerCards());
         profile.setSupportCards(dto.getSupportCards());
         profile.setCurrentDeck(dto.getCurrentDeck());
         profile.setCurrentDeckSupportCards(dto.getCurrentDeckSupportCards());
@@ -81,7 +81,7 @@ public class PlayerProfileMapper {
                 profile.getLeagueStatistics(),
                 profile.getBadges(),
                 profile.getAchievements(),
-                profile.getCards(),
+                profile.getPlayerCards(),
                 profile.getSupportCards(),
                 profile.getCurrentDeck(),
                 profile.getCurrentDeckSupportCards(),

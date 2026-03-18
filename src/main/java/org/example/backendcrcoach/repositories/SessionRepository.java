@@ -4,11 +4,11 @@ import org.example.backendcrcoach.domain.entities.Session;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SessionRepository extends JpaRepository<Session, Long> {
-    boolean existsByTitle(String title);
+    Boolean existsByTitle(String title);
 
     Session getSessionByTitle(String title);
 
     Session getSessionById(Long id);
 
-    boolean existsByTitleAndIdNot(String title, Long id);
+    Boolean existsByTitleAndIdNot(String title, Long id);
 }

@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.backendcrcoach.domain.entities.PlayerCard;
+import java.util.List;
 
 @Getter
 @Setter
@@ -39,8 +41,8 @@ public class PlayerProfileRequestDTO {
     private String leagueStatistics;
     private String badges;
     private String achievements;
-    private String cards;
-    private String supportCards;
+    private List<PlayerCard> playerCards;
+    private List<PlayerCard> supportCards;
     private String currentDeck;
     private String currentDeckSupportCards;
     private String currentFavouriteCard;

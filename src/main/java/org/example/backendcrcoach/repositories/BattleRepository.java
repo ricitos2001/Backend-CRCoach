@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BattleRepository extends JpaRepository<Battle, Long> {
-	boolean existsByBattleTime(String battleTime);
+	Boolean existsByBattleTime(String battleTime);
+
+    Boolean existsByTeam(String team);
 }
 

@@ -106,7 +106,7 @@ public class BattleService {
         int imported = 0;
         for (JsonNode node : battlesJson) {
             Battle battle = mapApiResponseToEntity(node);
-            // Evitar duplicados por battleTime
+            // Evitar duplicados basándose en el campo 'battleTime' (más fiable que comparar JSON)
             if (battle.getBattleTime() == null) continue;
             if (battleRepository.existsByBattleTime(battle.getBattleTime())) continue;
 

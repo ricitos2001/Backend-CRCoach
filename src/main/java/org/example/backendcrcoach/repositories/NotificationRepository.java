@@ -10,7 +10,7 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findAllByOrderByCreatedAtDesc();
 
-    boolean existsByTitle(String title);
+    Boolean existsByTitle(String title);
 
     Page<Notification> findByUserEmail(String userEmail, Pageable pageable);
 }
