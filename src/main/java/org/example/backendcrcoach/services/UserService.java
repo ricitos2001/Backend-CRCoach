@@ -233,8 +233,7 @@ public class UserService {
         }
     }
 
-    private void        // 2) Vincula el perfil almacenado a la cuenta del usuario.
- validarTipoDeArchivo(MultipartFile avatar) {
+    private void validarTipoDeArchivo(MultipartFile avatar) {
         String contentType = avatar.getContentType();
         if (!Arrays.asList("image/png", "image/jpeg", "image/gif", "image/webp").contains(contentType)) {
             throw new IllegalArgumentException("Tipo de archivo debe ser: (jpeg, png, gif, webp)");
@@ -253,34 +252,15 @@ public class UserService {
             throw new IllegalArgumentException("El playerTag ya esta vinculado a otra cuenta.");
         }
 
-        PlayerProfile profile = playerProfileRepository.findByTag(normalizedTag).orElseGet(() -> {
+        PlayerProfile profile = playerProfileRepository.findByTag(normalizedTag)
+                .orElseGet(() -> {
+                    // 1) Comprueba en API Supercell y guarda en BD si existe.
                     playerProfileService.getPlayer(normalizedTag.substring(1));
-                    return playerProfileRepository.findByTag(normalizedTag).orElseThrow(() -> new IllegalArgumentException("No se pudo almacenar el perfil del jugador."));
+                    return playerProfileRepository.findByTag(normalizedTag)
+                            .orElseThrow(() -> new IllegalArgumentException("No se pudo almacenar el perfil del jugador."));
                 });
-        usuario.setPlayerTag(profile.getTag());
-        usuario.setPlayerProfile(profile);
-        userRepository.save(usuario);
-    }
 
-    /**
-     * Vincula un playerTag a un usuario buscándolo por su email.
-     * Si no existe el usuario con ese email, no hace nada.
-     * Si el tag ya está vinculado a otra cuenta lanzará IllegalArgumentException.
-     */
-    public void bindPlayerTagToUserByEmail(String email, String tag) {
-        if (email == null || email.isBlank()) return;
-        String normalizedEmail = email.trim().toLowerCase();
-        Optional<User> optUser = userRepository.findUserByEmail(normalizedEmail);
-        if (optUser.isEmpty()) return;
-        User usuario = optUser.get();
-        String normalizedTag = normalizeTag(tag);
-        if (userRepository.existsByPlayerTagAndIdNot(normalizedTag, usuario.getId())) {
-            throw new IllegalArgumentException("El playerTag ya esta vinculado a otra cuenta.");
-        }
-        PlayerProfile profile = playerProfileRepository.findByTag(normalizedTag).orElseGet(() -> {
-                    playerProfileService.getPlayer(normalizedTag.substring(1));
-                    return playerProfileRepository.findByTag(normalizedTag).orElseThrow(() -> new IllegalArgumentException("No se pudo almacenar el perfil del jugador."));
-                });
+        // 2) Vincula el perfil almacenado a la cuenta del usuario.
         usuario.setPlayerTag(profile.getTag());
         usuario.setPlayerProfile(profile);
         userRepository.save(usuario);

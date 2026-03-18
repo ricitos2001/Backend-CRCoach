@@ -4,14 +4,12 @@ import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.PlayerProfileRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerProfileResponseDTO;
 import org.example.backendcrcoach.domain.entities.PlayerProfile;
-import org.example.backendcrcoach.domain.entities.User;
 import org.example.backendcrcoach.mappers.PlayerProfileMapper;
 import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.bind.annotation.RequestBody;
 import tools.jackson.databind.JsonNode;
@@ -35,7 +33,6 @@ public class PlayerProfileService {
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final BattleService battleService;
-    private final UserService userService;
 
     public PlayerProfileService(
             PlayerProfileRepository playerProfileRepository,
@@ -44,7 +41,7 @@ public class PlayerProfileService {
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
             BattleService battleService,
-            PlayerCardService playerCardService, @Lazy UserService userService) {
+            PlayerCardService playerCardService) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
@@ -53,7 +50,6 @@ public class PlayerProfileService {
                 .build();
         this.battleService = battleService;
         this.playerCardService = playerCardService;
-        this.userService = userService;
     }
 
     public Page<PlayerProfileResponseDTO> list(Pageable pageable) {
@@ -76,6 +72,7 @@ public class PlayerProfileService {
         PlayerProfile saved = playerProfileRepository.save(PlayerProfileMapper.toEntity(dto));
         return PlayerProfileMapper.toDTO(saved);
     }
+
     public PlayerProfileResponseDTO update(Long id, @RequestBody PlayerProfileRequestDTO dto) {
         PlayerProfile profile = playerProfileRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("PlayerProfile no encontrado con id: " + id));
         if (dto.getTag() != null && !dto.getTag().equals(profile.getTag()) && playerProfileRepository.existsByTag(dto.getTag())) {
@@ -85,6 +82,7 @@ public class PlayerProfileService {
         PlayerProfile saved = playerProfileRepository.save(profile);
         return PlayerProfileMapper.toDTO(saved);
     }
+
     private void updateBasicFields(PlayerProfileRequestDTO dto, PlayerProfile profile) {
         Optional.ofNullable(dto.getTag()).ifPresent(profile::setTag);
         Optional.ofNullable(dto.getName()).ifPresent(profile::setName);
@@ -125,6 +123,7 @@ public class PlayerProfileService {
         Optional.ofNullable(dto.getBestPathOfLegendSeasonResult()).ifPresent(profile::setBestPathOfLegendSeasonResult);
         Optional.ofNullable(dto.getProgress()).ifPresent(profile::setProgress);
     }
+
     public void delete(Long id) {
         if (!playerProfileRepository.existsById(id)) {
             throw new IllegalArgumentException("PlayerProfile no encontrado con id: " + id);
@@ -132,20 +131,7 @@ public class PlayerProfileService {
         playerProfileRepository.deleteById(id);
     }
 
-    public PlayerProfileResponseDTO getPlayerAndBindToEmail(String playerTag, String email) {
-        PlayerProfile savedProfile = fetchAndSavePlayerProfile(playerTag);
-        if (email != null && !email.isBlank()) {
-            userService.bindPlayerTagToUserByEmail(email, savedProfile.getTag());
-
-            try {
-            } catch (RuntimeException e) {
-                System.err.println("Error al vincular playerTag al email: " + e.getMessage());
-            }
-        }
-        return PlayerProfileMapper.toDTO(savedProfile);
-    }
-
-    private PlayerProfile fetchAndSavePlayerProfile(String playerTag) {
+    public PlayerProfileResponseDTO getPlayer(String playerTag) {
         String responseBody = webClient.get()
                 .uri("/players/{tag}", "#" + playerTag)
                 .retrieve()
@@ -173,7 +159,7 @@ public class PlayerProfileService {
         // Guardar las playerCards importadas/parseadas en el perfil (comportamiento similar a saveSnapshot)
         playerCardService.saveCardsFromProfile(savedProfile);
         battleService.importBattlesForPlayer(playerTag);
-        return savedProfile;
+        return PlayerProfileMapper.toDTO(savedProfile);
     }
 
 
@@ -296,12 +282,6 @@ public class PlayerProfileService {
     private String readJsonText(JsonNode json, String field) {
         JsonNode node = json.get(field);
         return node == null || node.isNull() ? null : node.toString();
-    }
-
-    //Para probar si se obtienen datos de la API y se guardan correctamente en la base de datos, sin necesidad de vincular el playerTag a un email
-    public PlayerProfileResponseDTO getPlayer(String playerTag) {
-        PlayerProfile savedProfile = fetchAndSavePlayerProfile(playerTag);
-        return PlayerProfileMapper.toDTO(savedProfile);
     }
 
 }

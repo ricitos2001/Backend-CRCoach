@@ -10,7 +10,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/player-cards")
+@RequestMapping("/api/player-cards")
 public class PlayerCardController {
 
     private final PlayerCardService playerCardService;

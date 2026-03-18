@@ -10,7 +10,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/battles")
+@RequestMapping("/api/battles")
 public class BattleController {
 
     private final BattleService battleService;

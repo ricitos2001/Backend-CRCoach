@@ -10,7 +10,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/cards")
+@RequestMapping("/api/cards")
 public class CardController {
 
     private final CardService cardService;
