@@ -1,0 +1,69 @@
+package org.example.backendcrcoach.domain.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.example.backendcrcoach.domain.entities.PlayerProfile;
+
+/**
+ * Entidad para almacenar batallas (Battle) basada en el JSON de ejemplo.
+ *
+ * Nota: los objetos complejos (arena, gameMode, team, opponent) se almacenan
+ * como texto JSON en columnas de tipo TEXT (@Lob). Esto mantiene la estructura
+ * del JSON original y evita modelar todas las subentidades ahora.
+ */
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "battles")
+public class Battle {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Long id;
+
+    // Campos simples del JSON
+    @Column
+    private String type;
+
+    // Fecha/hora tal y como viene en el JSON (se puede mapear a Instant/LocalDateTime si se desea)
+    @Column
+    private String battleTime;
+
+    @Column(name = "is_ladder_tournament")
+    private Boolean isLadderTournament;
+
+    @Column
+    private String deckSelection;
+
+    @Column(name = "is_hosted_match")
+    private Boolean isHostedMatch;
+
+    @Column
+    private Integer leagueNumber;
+
+    // Campos complejos serializados como JSON
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String arena;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String gameMode;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String team;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String opponent;
+
+    @ManyToOne
+    @JoinColumn(name = "player_profile_id", nullable = true)
+    private PlayerProfile playerProfile;
+
+}
+

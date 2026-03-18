@@ -25,22 +25,22 @@ public class PlayerProfileService {
     private final SnapshotService snapshotService;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    
+    private final BattleService battleService;
 
     public PlayerProfileService(
             PlayerProfileRepository playerProfileRepository,
             SnapshotService snapshotService,
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
-            @Value("${clash.royale.api.key}") String API_KEY
-
-    ) {
+            @Value("${clash.royale.api.key}") String API_KEY,
+            BattleService battleService) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
                 .baseUrl(API_URL)
                 .defaultHeader("Authorization", "Bearer " + API_KEY)
                 .build();
+        this.battleService = battleService;
     }
 
     public Page<PlayerProfileResponseDTO> list(Pageable pageable) {
@@ -147,6 +147,7 @@ public class PlayerProfileService {
                 }).orElseGet(() -> playerProfileRepository.save(playerProfile));
 
         snapshotService.saveSnapshot(savedProfile);
+        battleService.importBattlesForPlayer(playerTag);
         return PlayerProfileMapper.toDTO(savedProfile);
     }
 
