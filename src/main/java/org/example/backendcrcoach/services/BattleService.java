@@ -7,7 +7,6 @@ import org.example.backendcrcoach.domain.entities.Battle;
 import org.example.backendcrcoach.mappers.BattleMapper;
 import org.example.backendcrcoach.repositories.BattleRepository;
 import org.example.backendcrcoach.repositories.PlayerProfileRepository;
-import org.example.backendcrcoach.domain.entities.PlayerProfile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;

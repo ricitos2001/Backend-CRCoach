@@ -19,7 +19,6 @@ import java.util.Optional;
 
 @Service
 @Transactional
-@EnableScheduling
 public class SessionService {
     private final SessionRepository sessionRepository;
     public SessionService(SessionRepository sessionRepository) {

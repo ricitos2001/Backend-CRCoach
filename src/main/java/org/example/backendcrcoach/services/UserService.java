@@ -31,7 +31,6 @@ import java.util.Optional;
 
 @Service
 @Transactional
-@EnableScheduling
 public class UserService {
     public static final String USUARIO_NO_ENCONTRADO_CON = "Usuario no encontrado con ";
     private final UserRepository userRepository;

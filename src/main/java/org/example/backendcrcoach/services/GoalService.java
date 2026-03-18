@@ -18,7 +18,6 @@ import java.util.Optional;
 
 @Service
 @Transactional
-@EnableScheduling
 public class GoalService {
     private final GoalRepository goalRepository;
     public GoalService(GoalRepository goalRepository) {
