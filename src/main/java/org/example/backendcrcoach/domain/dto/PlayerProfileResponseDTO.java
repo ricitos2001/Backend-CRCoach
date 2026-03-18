@@ -2,7 +2,6 @@ package org.example.backendcrcoach.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.backendcrcoach.domain.entities.PlayerCard;
 import java.util.List;
 
 @Getter
@@ -38,8 +37,8 @@ public class PlayerProfileResponseDTO {
     private String leagueStatistics;
     private String badges;
     private String achievements;
-    private List<PlayerCard> playerCards;
-    private List<PlayerCard> supportCards;
+    private List<PlayerCardResponseDTO> playerCards;
+    private List<PlayerCardResponseDTO> supportCards;
     private String currentDeck;
     private String currentDeckSupportCards;
     private String currentFavouriteCard;

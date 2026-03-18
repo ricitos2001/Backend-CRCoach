@@ -3,6 +3,10 @@ package org.example.backendcrcoach.mappers;
 import org.example.backendcrcoach.domain.dto.PlayerProfileRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerProfileResponseDTO;
 import org.example.backendcrcoach.domain.entities.PlayerProfile;
+import org.example.backendcrcoach.domain.dto.PlayerCardResponseDTO;
+import org.example.backendcrcoach.domain.entities.PlayerCard;
+import java.util.stream.Collectors;
+import java.util.List;
 
 public class PlayerProfileMapper {
 
@@ -81,8 +85,8 @@ public class PlayerProfileMapper {
                 profile.getLeagueStatistics(),
                 profile.getBadges(),
                 profile.getAchievements(),
-                profile.getPlayerCards(),
-                profile.getSupportCards(),
+                mapCards(profile.getPlayerCards()),
+                mapCards(profile.getSupportCards()),
                 profile.getCurrentDeck(),
                 profile.getCurrentDeckSupportCards(),
                 profile.getCurrentFavouriteCard(),
@@ -91,6 +95,11 @@ public class PlayerProfileMapper {
                 profile.getBestPathOfLegendSeasonResult(),
                 profile.getProgress()
         );
+    }
+
+    private static List<PlayerCardResponseDTO> mapCards(List<PlayerCard> cards) {
+        if (cards == null) return null;
+        return cards.stream().map(PlayerCardMapper::toDTO).collect(Collectors.toList());
     }
 }
 
