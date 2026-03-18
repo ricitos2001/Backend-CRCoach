@@ -4,10 +4,8 @@ import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.PlayerProfileRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerProfileResponseDTO;
 import org.example.backendcrcoach.domain.entities.PlayerProfile;
-import org.example.backendcrcoach.domain.entities.Snapshot;
 import org.example.backendcrcoach.mappers.PlayerProfileMapper;
 import org.example.backendcrcoach.repositories.PlayerProfileRepository;
-import org.example.backendcrcoach.repositories.SnapshotRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,21 +22,21 @@ import java.util.Optional;
 public class PlayerProfileService {
 
     private final PlayerProfileRepository playerProfileRepository;
-    private final SnapshotRepository snapshotRepository;
+    private final SnapshotService snapshotService;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
 
     public PlayerProfileService(
             PlayerProfileRepository playerProfileRepository,
-            SnapshotRepository snapshotRepository,
+            SnapshotService snapshotService,
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY
 
     ) {
         this.playerProfileRepository = playerProfileRepository;
-        this.snapshotRepository = snapshotRepository;
+        this.snapshotService = snapshotService;
         this.webClient = builder
                 .baseUrl(API_URL)
                 .defaultHeader("Authorization", "Bearer " + API_KEY)
@@ -58,7 +56,6 @@ public class PlayerProfileService {
         PlayerProfile profile = playerProfileRepository.findByTag(playerTag).orElseThrow(() -> new IllegalArgumentException("PlayerProfile no encontrado con tag: " + playerTag));
         return PlayerProfileMapper.toDTO(profile);
     }
-
     public PlayerProfileResponseDTO create(PlayerProfileRequestDTO dto) {
         if (dto.getTag() != null && playerProfileRepository.existsByTag(dto.getTag())) {
             throw new IllegalArgumentException("Ya existe un PlayerProfile con tag: " + dto.getTag());
@@ -149,40 +146,10 @@ public class PlayerProfileService {
                     return playerProfileRepository.save(playerProfile);
                 }).orElseGet(() -> playerProfileRepository.save(playerProfile));
 
-        saveSnapshot(savedProfile);
+        snapshotService.saveSnapshot(savedProfile);
         return PlayerProfileMapper.toDTO(savedProfile);
     }
 
-
-    // Método para guardar un snapshot de las estadísticas del jugador
-    private void saveSnapshot(PlayerProfile profile) {
-        Snapshot snapshot = Snapshot.builder()
-                .playerProfile(profile)
-                .trophies(nonNull(profile.getTrophies()))
-                .bestTrophies(nonNull(profile.getBestTrophies()))
-                .wins(nonNull(profile.getWins()))
-                .losses(nonNull(profile.getLosses()))
-                .battleCount(nonNull(profile.getBattleCount()))
-                .threeCrownWins(nonNull(profile.getThreeCrownWins()))
-                .challengeCardsWon(nonNull(profile.getChallengeCardsWon()))
-                .challengeMaxWins(nonNull(profile.getChallengeMaxWins()))
-                .tournamentCardsWon(nonNull(profile.getTournamentCardsWon()))
-                .tournamentBattleCount(nonNull(profile.getTournamentBattleCount()))
-                .donations(nonNull(profile.getDonations()))
-                .donationsReceived(nonNull(profile.getDonationsReceived()))
-                .totalDonations(nonNull(profile.getTotalDonations()))
-                .warDayWins(nonNull(profile.getWarDayWins()))
-                .clanCardsCollected(nonNull(profile.getClanCardsCollected()))
-                .starPoints(nonNull(profile.getStarPoints()))
-                .expPoints(nonNull(profile.getExpPoints()))
-                .build();
-
-        snapshotRepository.save(snapshot);
-    }
-
-    private Integer nonNull(Integer value) {
-        return value == null ? 0 : value;
-    }
 
     private PlayerProfile mapApiResponseToEntity(JsonNode json) {
         PlayerProfile profile = new PlayerProfile();
