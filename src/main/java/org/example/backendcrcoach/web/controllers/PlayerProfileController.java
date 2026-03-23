@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping(value = "/api/v1/player-profiles", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/player_profiles", produces = MediaType.APPLICATION_JSON_VALUE)
 public class PlayerProfileController {
 
     private final PlayerProfileService playerProfileService;

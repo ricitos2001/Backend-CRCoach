@@ -3,6 +3,7 @@ package org.example.backendcrcoach.web.controllers;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
 import org.example.backendcrcoach.services.BattleService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +23,7 @@ public class BattleController {
     @PostMapping
     public ResponseEntity<BattleResponseDTO> create(@RequestBody BattleRequestDTO dto) {
         BattleResponseDTO created = battleService.createBattle(dto);
-        return ResponseEntity.created(URI.create("/api/battles/" + created.getId())).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping

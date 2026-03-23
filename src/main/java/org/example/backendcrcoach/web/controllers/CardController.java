@@ -3,6 +3,7 @@ package org.example.backendcrcoach.web.controllers;
 import org.example.backendcrcoach.domain.dto.CardRequestDTO;
 import org.example.backendcrcoach.domain.dto.CardResponseDTO;
 import org.example.backendcrcoach.services.CardService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +33,7 @@ public class CardController {
     @PostMapping
     public ResponseEntity<CardResponseDTO> create(@RequestBody CardRequestDTO dto) {
         CardResponseDTO created = cardService.create(dto);
-        return ResponseEntity.created(URI.create("/api/cards/" + created.getId())).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @DeleteMapping("/{id}")
