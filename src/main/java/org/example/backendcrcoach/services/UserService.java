@@ -147,6 +147,8 @@ public class UserService {
     }
 
     private void updateBasicFields(UserRequestDTO user, User updatedUser) {
+        Optional.ofNullable(user.getName()).ifPresent(updatedUser::setName);
+        Optional.ofNullable(user.getSurnames()).ifPresent(updatedUser::setSurnames);
         Optional.ofNullable(user.getUsername()).ifPresent(updatedUser::setUsername);
         Optional.ofNullable(user.getEmail()).ifPresent(updatedUser::setEmail);
         Optional.ofNullable(user.getPasswordHash()).ifPresent(updatedUser::setPasswordHash);

@@ -17,6 +17,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
     @Column(nullable = false, unique = true)
+    private String name;
+    @Column(nullable = false, unique = true)
+    private String surnames;
+    @Column(nullable = false, unique = true)
     private String username;
     @Column(nullable = false, unique = true)
     private String email;

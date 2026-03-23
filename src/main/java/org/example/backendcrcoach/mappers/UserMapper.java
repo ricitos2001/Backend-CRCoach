@@ -7,6 +7,8 @@ import org.example.backendcrcoach.domain.entities.User;
 public class UserMapper {
     public static User toEntity(UserRequestDTO dto) {
         User user = new User();
+        user.setName(dto.getName());
+        user.setSurnames(dto.getSurnames());
         user.setUsername(dto.getUsername());
         user.setEmail(dto.getEmail());
         user.setPasswordHash(dto.getPasswordHash());
@@ -22,6 +24,8 @@ public class UserMapper {
     public static UserResponseDTO toDTO(User user) {
         return new UserResponseDTO(
                 user.getId(),
+                user.getName(),
+                user.getSurnames(),
                 user.getUsername(),
                 user.getEmail(),
                 user.getPasswordHash(),
