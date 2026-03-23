@@ -246,31 +246,91 @@ public class UserService {
         return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(USUARIO_NO_ENCONTRADO_CON + "id " + id));
     }
 
+    /**
+     * Vincula un tag de Clash Royale al perfil del usuario autenticado.
+     * 
+     * Esta función:
+     * 1. Obtiene el usuario autenticado actual
+     * 2. Verifica que el tag no esté ya vinculado a otra cuenta
+     * 3. Busca el perfil en la BD, si no existe lo obtiene de la API de Supercell
+     * 4. Vincula correctamente el tag y el perfil al usuario
+     * 5. Guarda los cambios en la BD
+     * 
+     * @param tag El tag del jugador (con o sin #)
+     * @throws IllegalArgumentException si el tag es inválido, ya existe en otra cuenta, o no existe en la API
+     */
     public void bindPlayerTagToCurrentUser(String tag) {
+        // 1) Obtener el usuario autenticado actual
         User usuario = obtenerMiPerfil();
         String normalizedTag = normalizeTag(tag);
 
+        // 2) Verificar que el tag no esté ya vinculado a otra cuenta
         if (userRepository.existsByPlayerTagAndIdNot(normalizedTag, usuario.getId())) {
-            throw new IllegalArgumentException("El playerTag ya esta vinculado a otra cuenta.");
+            throw new IllegalArgumentException("El playerTag ya está vinculado a otra cuenta.");
         }
 
-        PlayerProfile profile = playerProfileRepository.findByTag(normalizedTag)
-                .orElseGet(() -> {
-                    // 1) Comprueba en API Supercell y guarda en BD si existe.
-                    playerProfileService.getPlayer(normalizedTag.substring(1));
-                    return playerProfileRepository.findByTag(normalizedTag)
-                            .orElseThrow(() -> new IllegalArgumentException("No se pudo almacenar el perfil del jugador."));
-                });
+        // 3) Obtener o crear el perfil del jugador
+        PlayerProfile profile = obtenerOCrearPerfilJugador(normalizedTag);
 
-        // 2) Vincula el perfil almacenado a la cuenta del usuario.
+        // 4) Vincular el tag al usuario
         usuario.setPlayerTag(profile.getTag());
-        usuario.setPlayerProfile(profile);
+        // IMPORTANTE: No usar setPlayerProfile aquí porque la relación es OneToOne(fetch=LAZY)
+        // y está configurada como insertable=false, updatable=false en la BD
+        // El tag es la clave que vincula ambas entidades
+        
+        // 5) Guardar los cambios
         userRepository.save(usuario);
+    }
+
+    /**
+     * Desvincula el tag de Clash Royale de un usuario específico por su ID.
+     * 
+     * @param id ID del usuario al que desvinculari el tag
+     * @throws ResourceNotFoundException si el usuario no existe
+     * @throws IllegalArgumentException si el usuario no tiene tag vinculado
+     */
+    public void unbindPlayerTagFromUser(Long id) {
+        User usuario = obtenerUsuarioPorId(id);
+        
+        if (usuario.getPlayerTag() == null || usuario.getPlayerTag().isBlank()) {
+            throw new IllegalArgumentException("El usuario no tiene ningún playerTag vinculado.");
+        }
+
+        usuario.setPlayerTag(null);
+        userRepository.save(usuario);
+    }
+
+    /**
+     * Obtiene el perfil del jugador desde la BD o de la API de Supercell.
+     * 
+     * @param normalizedTag El tag normalizado del jugador (con #)
+     * @return PlayerProfile El perfil del jugador
+     * @throws IllegalArgumentException si el perfil no existe en la BD ni en la API
+     */
+    private PlayerProfile obtenerOCrearPerfilJugador(String normalizedTag) {
+        // Buscar en la BD primero
+        Optional<PlayerProfile> profileOpt = playerProfileRepository.findByTag(normalizedTag);
+        
+        if (profileOpt.isPresent()) {
+            return profileOpt.get();
+        }
+
+        // Si no existe en BD, intentar obtenerlo de la API de Supercell
+        // El método getPlayer() se encarga de:
+        // - Llamar a la API de Supercell
+        // - Mapear la respuesta a PlayerProfile
+        // - Guardar o actualizar el perfil en la BD
+        // - Guardar snapshot e importar batallas
+        playerProfileService.getPlayer(normalizedTag.substring(1)); // Remover # para la API
+
+        // Ahora buscar en BD después de guardar desde API
+        return playerProfileRepository.findByTag(normalizedTag)
+                .orElseThrow(() -> new IllegalArgumentException("No se pudo obtener ni almacenar el perfil del jugador con tag: " + normalizedTag));
     }
 
     private String normalizeTag(String tag) {
         if (tag == null || tag.isBlank()) {
-            throw new IllegalArgumentException("El playerTag no puede estar vacio.");
+            throw new IllegalArgumentException("El playerTag no puede estar vacío.");
         }
         String normalized = tag.trim().toUpperCase();
         return normalized.startsWith("#") ? normalized : "#" + normalized;

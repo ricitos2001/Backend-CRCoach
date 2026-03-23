@@ -20,12 +20,12 @@ public class WebClientConfig {
                 // Timeout de conexión (10s)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
 
-                // Timeout de respuesta total (30s)
-                .responseTimeout(Duration.ofSeconds(180))
+                // Timeout de respuesta total (5 minutos)
+                .responseTimeout(Duration.ofMinutes(10))
 
-                // Timeout de lectura (30s sin recibir datos)
+                // Timeout de lectura (5 minutos sin recibir datos)
                 .doOnConnected(conn ->
-                        conn.addHandlerLast(new ReadTimeoutHandler(30))
+                        conn.addHandlerLast(new ReadTimeoutHandler(300))
                 );
 
         return WebClient.builder()

@@ -106,11 +106,19 @@ public class UserController {
         return ResponseEntity.ok(usuario);
     }
 
-    @PostMapping("/me/player-profile/link")
+    @PostMapping("/me/player-profile/link/{tag}")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Vincular perfil de Clash Royale", description = "Comprueba el tag en Supercell, lo guarda en la BD y vincula ese perfil al usuario autenticado.")
-    public ResponseEntity<Map<String, String>> vincularPerfilClash(@RequestParam String tag) {
+    public ResponseEntity<Map<String, String>> vincularPerfilClash(@PathVariable(name = "tag") String tag) {
         userService.bindPlayerTagToCurrentUser(tag);
+        return ResponseEntity.ok(Map.of("message", "Perfil de Clash Royale vinculado correctamente."));
+    }
+
+    @PostMapping("/me/player-profile/unlink/{id}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Vincular perfil de Clash Royale", description = "Comprueba el tag en Supercell, lo guarda en la BD y vincula ese perfil al usuario autenticado.")
+    public ResponseEntity<Map<String, String>> desvincularPerfilClash(@PathVariable(name = "id") Long id) {
+        userService.unbindPlayerTagFromUser(id);
         return ResponseEntity.ok(Map.of("message", "Perfil de Clash Royale vinculado correctamente."));
     }
 
