@@ -107,17 +107,18 @@ public class UserService {
 
         // Enviar correo de bienvenida/registro
         try {
-            String subject = "Bienvenido a MemoWorks";
+            String subject = "Bienvenido a CRCoach";
             Map<String, Object> model = new HashMap<>();
             model.put("user", savedUser);
             emailService.sendTemplateEmail(savedUser.getEmail(), subject, "saludo.html", model);
         } catch (Exception e) {
             // fallback simple
             try {
-                String subject = "Bienvenido a MemoWorks";
-                String text = "Gracias por registrarte en MemoWorks.";
+                String subject = "Bienvenido a CRCoach";
+                String text = "Gracias por registrarte en CRCoach.";
                 emailService.sendSimpleEmail(savedUser.getEmail(), subject, text);
             } catch (Exception ex) {
+                throw new RuntimeException("Error al enviar correo de bienvenida a " + savedUser.getEmail(), ex);
             }
         }
 
