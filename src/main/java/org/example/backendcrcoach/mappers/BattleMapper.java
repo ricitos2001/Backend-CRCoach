@@ -7,7 +7,6 @@ import org.example.backendcrcoach.domain.entities.Battle;
 public class BattleMapper {
 
     public static Battle toEntity(BattleRequestDTO dto) {
-        if (dto == null) return null;
         Battle battle = new Battle();
         battle.setType(dto.getType());
         battle.setBattleTime(dto.getBattleTime());
@@ -23,7 +22,6 @@ public class BattleMapper {
     }
 
     public static BattleResponseDTO toDTO(Battle battle) {
-        if (battle == null) return null;
         return new BattleResponseDTO(
                 battle.getId(),
                 battle.getType(),

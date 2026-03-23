@@ -8,7 +8,6 @@ import org.example.backendcrcoach.domain.entities.IconUrl;
 public class CardMapper {
 
     public static Card toEntity(CardRequestDTO dto) {
-        if (dto == null) return null;
         Card card = new Card();
         card.setCardId(dto.getCardId());
         card.setName(dto.getName());
@@ -16,19 +15,11 @@ public class CardMapper {
         card.setMaxEvolutionLevel(dto.getMaxEvolutionLevel());
         card.setRarity(dto.getRarity());
         card.setElixirCost(dto.getElixirCost());
-        if (dto.getIconUrl() != null) {
-            IconUrl icon = new IconUrl();
-            icon.setMedium(dto.getIconUrl().getMedium());
-            icon.setEvolutionMedium(dto.getIconUrl().getEvolutionMedium());
-            card.setIconUrl(icon);
-        }
+        card.setIconUrl(dto.getIconUrl());
         return card;
     }
 
     public static CardResponseDTO toDTO(Card card) {
-        if (card == null) return null;
-        IconUrl iconUrl = card.getIconUrl();
-        String playerTag = card.getPlayerProfile() != null ? card.getPlayerProfile().getTag() : null;
         return new CardResponseDTO(
                 card.getId(),
                 card.getCardId(),
@@ -37,8 +28,8 @@ public class CardMapper {
                 card.getMaxEvolutionLevel(),
                 card.getRarity(),
                 card.getElixirCost(),
-                iconUrl,
-                playerTag
+                card.getIconUrl(),
+                card.getPlayerProfile() != null ? card.getPlayerProfile().getTag() : null
         );
     }
 }

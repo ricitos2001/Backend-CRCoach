@@ -7,7 +7,6 @@ import org.example.backendcrcoach.domain.entities.PlayerCard;
 public class PlayerCardMapper {
 
     public static PlayerCard toEntity(PlayerCardRequestDTO dto) {
-        if (dto == null) return null;
         PlayerCard card = new PlayerCard();
         card.setCardId(dto.getCardId());
         card.setName(dto.getName());
@@ -22,8 +21,6 @@ public class PlayerCardMapper {
     }
 
     public static PlayerCardResponseDTO toDTO(PlayerCard card) {
-        if (card == null) return null;
-        String playerTag = card.getPlayerProfile() != null ? card.getPlayerProfile().getTag() : null;
         return new PlayerCardResponseDTO(
                 card.getId(),
                 card.getCardId(),
@@ -35,7 +32,7 @@ public class PlayerCardMapper {
                 card.getCount(),
                 card.getElixirCost(),
                 card.getIconUrl(),
-                playerTag
+                card.getPlayerProfile() != null ? card.getPlayerProfile().getTag() : null
         );
     }
 }

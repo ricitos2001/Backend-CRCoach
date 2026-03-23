@@ -5,6 +5,7 @@ import org.example.backendcrcoach.domain.dto.PlayerCardRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerCardResponseDTO;
 import org.example.backendcrcoach.domain.entities.IconUrl;
 import org.example.backendcrcoach.domain.entities.PlayerCard;
+import org.example.backendcrcoach.domain.entities.PlayerProfile;
 import org.example.backendcrcoach.mappers.PlayerCardMapper;
 import org.example.backendcrcoach.repositories.PlayerCardRepository;
 import org.example.backendcrcoach.repositories.PlayerProfileRepository;
@@ -15,6 +16,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,7 +48,7 @@ public class PlayerCardService {
         return PlayerCardMapper.toDTO(saved);
     }
 
-    public java.util.List<PlayerCardResponseDTO> importCardsForPlayer(String playerTag) {
+    public List<PlayerCardResponseDTO> importCardsForPlayer(String playerTag) {
         String response = webClient.get().uri("/players/{tag}", "#" + playerTag).retrieve().bodyToMono(String.class).block();
         if (response == null || response.isBlank()) return java.util.List.of();
 
@@ -57,7 +59,7 @@ public class PlayerCardService {
             throw new IllegalArgumentException("Invalid response from player API", e);
         }
 
-        java.util.List<PlayerCard> saved = new java.util.ArrayList<>();
+        List<PlayerCard> saved = new java.util.ArrayList<>();
 
         // process regular cards
         JsonNode cardsNode = root.get("cards");
@@ -130,12 +132,12 @@ public class PlayerCardService {
      * Guarda las playerCards que ya estén asociadas en el objeto PlayerProfile.
      * Evita duplicados por cardId y asigna la relación bidireccional.
      */
-    public void saveCardsFromProfile(org.example.backendcrcoach.domain.entities.PlayerProfile profile) {
+    public void saveCardsFromProfile(PlayerProfile profile) {
         if (profile == null || profile.getPlayerCards() == null) return;
 
         // Obtener cardIds existentes para este playerTag para evitar múltiples consultas por cada carta
         List<PlayerCard> existing = playerCardRepository.findByPlayerProfileTag(profile.getTag());
-        java.util.Set<Integer> existingIds = existing.stream()
+        Set<Integer> existingIds = existing.stream()
                 .map(PlayerCard::getCardId)
                 .filter(java.util.Objects::nonNull)
                 .collect(java.util.stream.Collectors.toSet());
