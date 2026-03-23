@@ -3,6 +3,7 @@ package org.example.backendcrcoach.services;
 import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.PlayerProfileRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerProfileResponseDTO;
+import org.example.backendcrcoach.domain.entities.Card;
 import org.example.backendcrcoach.domain.entities.PlayerProfile;
 import org.example.backendcrcoach.mappers.PlayerProfileMapper;
 import org.example.backendcrcoach.repositories.ArenaRepository;
@@ -19,8 +20,6 @@ import tools.jackson.databind.ObjectMapper;
 // ...existing code...
 import org.example.backendcrcoach.domain.entities.PlayerCard;
 import org.example.backendcrcoach.domain.entities.IconUrl;
-import org.example.backendcrcoach.domain.entities.Clan;
-import org.example.backendcrcoach.domain.entities.Arena;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +35,6 @@ public class PlayerProfileService {
     private final PlayerCardService playerCardService;
     private final WebClient webClient;
     private final BattleService battleService;
-    private final org.example.backendcrcoach.repositories.ClanRepository clanRepository;
-    private final org.example.backendcrcoach.repositories.ArenaRepository arenaRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArenaService arenaService;
     private final ClanService clanService;
@@ -50,8 +47,8 @@ public class PlayerProfileService {
             @Value("${clash.royale.api.key}") String API_KEY,
             BattleService battleService,
             PlayerCardService playerCardService,
-            ClanRepository clanRepository,
-            ArenaRepository arenaRepository, ArenaService arenaService, ClanService clanService) {
+            ArenaService arenaService,
+            ClanService clanService) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
@@ -60,8 +57,6 @@ public class PlayerProfileService {
                 .build();
         this.battleService = battleService;
         this.playerCardService = playerCardService;
-        this.clanRepository = clanRepository;
-        this.arenaRepository = arenaRepository;
         this.arenaService = arenaService;
         this.clanService = clanService;
     }
@@ -163,17 +158,100 @@ public class PlayerProfileService {
         }
 
         PlayerProfile playerProfile = mapApiResponseToEntity(playerJson);
+        // Primero importar batallas (devuelve cuantas batallas nuevas se añadieron)
+        int importedBattles = 0;
+        try {
+            importedBattles = battleService.importBattlesForPlayer(playerTag);
+        } catch (Exception e) {
+            // no interrumpir el flujo por fallos en batallas
+        }
 
-        PlayerProfile savedProfile = playerProfileRepository.findByTag(playerProfile.getTag()).map(existingProfile -> {
-                    playerProfile.setId(existingProfile.getId());
-                    return playerProfileRepository.save(playerProfile);
-                }).orElseGet(() -> playerProfileRepository.save(playerProfile));
+        PlayerProfile savedProfile;
+        PlayerProfile existing = playerProfileRepository.findByTag(playerProfile.getTag()).orElse(null);
+        boolean statsChanged = false;
+        if (existing != null) {
+            // Determinar si las estadísticas relevantes cambiaron
+            statsChanged = hasSnapshotRelevantChanges(existing, playerProfile);
 
-        snapshotService.saveSnapshot(savedProfile);
-        // Guardar las playerCards importadas/parseadas en el perfil (comportamiento similar a saveSnapshot)
+            // Actualizar campos del perfil existente con la información nueva
+            existing.setName(playerProfile.getName());
+            existing.setExpLevel(playerProfile.getExpLevel());
+            existing.setTrophies(playerProfile.getTrophies());
+            existing.setBestTrophies(playerProfile.getBestTrophies());
+            existing.setWins(playerProfile.getWins());
+            existing.setLosses(playerProfile.getLosses());
+            existing.setBattleCount(playerProfile.getBattleCount());
+            existing.setThreeCrownWins(playerProfile.getThreeCrownWins());
+            existing.setChallengeCardsWon(playerProfile.getChallengeCardsWon());
+            existing.setChallengeMaxWins(playerProfile.getChallengeMaxWins());
+            existing.setTournamentCardsWon(playerProfile.getTournamentCardsWon());
+            existing.setTournamentBattleCount(playerProfile.getTournamentBattleCount());
+            existing.setRole(playerProfile.getRole());
+            existing.setDonations(playerProfile.getDonations());
+            existing.setDonationsReceived(playerProfile.getDonationsReceived());
+            existing.setTotalDonations(playerProfile.getTotalDonations());
+            existing.setWarDayWins(playerProfile.getWarDayWins());
+            existing.setClanCardsCollected(playerProfile.getClanCardsCollected());
+            existing.setStarPoints(playerProfile.getStarPoints());
+            existing.setExpPoints(playerProfile.getExpPoints());
+            existing.setLegacyTrophyRoadHighScore(playerProfile.getLegacyTrophyRoadHighScore());
+            existing.setTotalExpPoints(playerProfile.getTotalExpPoints());
+            existing.setClan(playerProfile.getClan());
+            existing.setArena(playerProfile.getArena());
+            existing.setLeagueStatistics(playerProfile.getLeagueStatistics());
+            existing.setBadges(playerProfile.getBadges());
+            existing.setAchievements(playerProfile.getAchievements());
+            existing.setPlayerCards(playerProfile.getPlayerCards());
+            existing.setCurrentDeck(playerProfile.getCurrentDeck());
+            existing.setCurrentDeckSupportCards(playerProfile.getCurrentDeckSupportCards());
+            existing.setCurrentFavouriteCard(playerProfile.getCurrentFavouriteCard());
+            existing.setCurrentPathOfLegendSeasonResult(playerProfile.getCurrentPathOfLegendSeasonResult());
+            existing.setLastPathOfLegendSeasonResult(playerProfile.getLastPathOfLegendSeasonResult());
+            existing.setBestPathOfLegendSeasonResult(playerProfile.getBestPathOfLegendSeasonResult());
+            existing.setProgress(playerProfile.getProgress());
+
+            savedProfile = playerProfileRepository.save(existing);
+        } else {
+            savedProfile = playerProfileRepository.save(playerProfile);
+            statsChanged = true; // nuevo perfil -> snapshot
+        }
+
+        // Crear snapshot si las estadísticas cambiaron o si se importaron nuevas batallas
+        if (statsChanged || importedBattles > 0) {
+            snapshotService.saveSnapshot(savedProfile);
+        }
+
+        // Guardar/actualizar playerCards siempre (pueden cambiar aunque estadísticas no)
         playerCardService.saveCardsFromProfile(savedProfile);
-        battleService.importBattlesForPlayer(playerTag);
+
         return PlayerProfileMapper.toDTO(savedProfile);
+    }
+
+    private boolean hasSnapshotRelevantChanges(PlayerProfile existing, PlayerProfile updated) {
+        if (existing == null || updated == null) return true;
+        if (safeEquals(existing.getTrophies(), updated.getTrophies())) return true;
+        if (safeEquals(existing.getBestTrophies(), updated.getBestTrophies())) return true;
+        if (safeEquals(existing.getWins(), updated.getWins())) return true;
+        if (safeEquals(existing.getLosses(), updated.getLosses())) return true;
+        if (safeEquals(existing.getBattleCount(), updated.getBattleCount())) return true;
+        if (safeEquals(existing.getThreeCrownWins(), updated.getThreeCrownWins())) return true;
+        if (safeEquals(existing.getChallengeCardsWon(), updated.getChallengeCardsWon())) return true;
+        if (safeEquals(existing.getChallengeMaxWins(), updated.getChallengeMaxWins())) return true;
+        if (safeEquals(existing.getTournamentCardsWon(), updated.getTournamentCardsWon())) return true;
+        if (safeEquals(existing.getTournamentBattleCount(), updated.getTournamentBattleCount())) return true;
+        if (safeEquals(existing.getDonations(), updated.getDonations())) return true;
+        if (safeEquals(existing.getDonationsReceived(), updated.getDonationsReceived())) return true;
+        if (safeEquals(existing.getTotalDonations(), updated.getTotalDonations())) return true;
+        if (safeEquals(existing.getWarDayWins(), updated.getWarDayWins())) return true;
+        if (safeEquals(existing.getClanCardsCollected(), updated.getClanCardsCollected())) return true;
+        if (safeEquals(existing.getStarPoints(), updated.getStarPoints())) return true;
+        return safeEquals(existing.getExpPoints(), updated.getExpPoints());
+    }
+
+    private boolean safeEquals(Integer a, Integer b) {
+        if (a == null && b == null) return false;
+        if (a == null || b == null) return true;
+        return !a.equals(b);
     }
 
 
@@ -216,26 +294,7 @@ public class PlayerProfileService {
         if (cardsNode != null && cardsNode.isArray()) {
             List<PlayerCard> cardList = new ArrayList<>();
             for (JsonNode c : cardsNode) {
-                PlayerCard card = new PlayerCard();
-                card.setCardId(c.has("id") && !c.get("id").isNull() ? c.get("id").asInt() : null);
-                card.setName(c.has("name") && !c.get("name").isNull() ? c.get("name").asText() : null);
-                card.setLevel(c.has("level") && !c.get("level").isNull() ? c.get("level").asInt() : null);
-                card.setMaxLevel(c.has("maxLevel") && !c.get("maxLevel").isNull() ? c.get("maxLevel").asInt() : null);
-                card.setMaxEvolutionLevel(c.has("maxEvolutionLevel") && !c.get("maxEvolutionLevel").isNull() ? c.get("maxEvolutionLevel").asInt() : null);
-                card.setRarity(c.has("rarity") && !c.get("rarity").isNull() ? c.get("rarity").asText() : null);
-                card.setCount(c.has("count") && !c.get("count").isNull() ? c.get("count").asInt() : null);
-                card.setElixirCost(c.has("elixirCost") && !c.get("elixirCost").isNull() ? c.get("elixirCost").asInt() : null);
-
-                // iconUrls object
-                JsonNode iconNode = c.get("iconUrls");
-                if (iconNode != null && !iconNode.isNull()) {
-                    IconUrl iconUrl = new IconUrl();
-                    iconUrl.setMedium(iconNode.has("medium") && !iconNode.get("medium").isNull() ? iconNode.get("medium").asText() : null);
-                    iconUrl.setEvolutionMedium(iconNode.has("evolutionMedium") && !iconNode.get("evolutionMedium").isNull() ? iconNode.get("evolutionMedium").asText() : null);
-                    card.setIconUrl(iconUrl);
-                }
-
-                // Marcar relación y flag
+                PlayerCard card = parseCards(c);
                 card.setPlayerProfile(profile);
                 card.setSupportCard(false);
 
@@ -245,27 +304,12 @@ public class PlayerProfileService {
         } else {
             profile.setPlayerCards(null);
         }
-        // Parse supportCards array into List<PlayerCard> with supportCard=true
+
         JsonNode supportNode = json.get("supportCards");
         if (supportNode != null && supportNode.isArray()) {
             List<PlayerCard> supportList = new ArrayList<>();
             for (JsonNode s : supportNode) {
-                PlayerCard card = new PlayerCard();
-                card.setCardId(s.has("id") && !s.get("id").isNull() ? s.get("id").asInt() : null);
-                card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asText() : null);
-                card.setLevel(s.has("level") && !s.get("level").isNull() ? s.get("level").asInt() : null);
-                card.setMaxLevel(s.has("maxLevel") && !s.get("maxLevel").isNull() ? s.get("maxLevel").asInt() : null);
-                card.setMaxEvolutionLevel(s.has("maxEvolutionLevel") && !s.get("maxEvolutionLevel").isNull() ? s.get("maxEvolutionLevel").asInt() : null);
-                card.setRarity(s.has("rarity") && !s.get("rarity").isNull() ? s.get("rarity").asText() : null);
-                card.setCount(s.has("count") && !s.get("count").isNull() ? s.get("count").asInt() : null);
-                card.setElixirCost(s.has("elixirCost") && !s.get("elixirCost").isNull() ? s.get("elixirCost").asInt() : null);
-                JsonNode iconNode2 = s.get("iconUrls");
-                if (iconNode2 != null && !iconNode2.isNull()) {
-                    IconUrl iconUrl2 = new IconUrl();
-                    iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? iconNode2.get("medium").asText() : null);
-                    iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? iconNode2.get("evolutionMedium").asText() : null);
-                    card.setIconUrl(iconUrl2);
-                }
+                PlayerCard card = parseCards(s);
                 card.setSupportCard(true);
                 supportList.add(card);
             }
@@ -282,6 +326,27 @@ public class PlayerProfileService {
         profile.setProgress(readJsonText(json, "progress"));
 
         return profile;
+    }
+
+    private PlayerCard parseCards(JsonNode s) {
+        PlayerCard card = new PlayerCard();
+        card.setCardId(s.has("id") && !s.get("id").isNull() ? s.get("id").asInt() : null);
+        card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asText() : null);
+        card.setLevel(s.has("level") && !s.get("level").isNull() ? s.get("level").asInt() : null);
+        card.setMaxLevel(s.has("maxLevel") && !s.get("maxLevel").isNull() ? s.get("maxLevel").asInt() : null);
+        card.setMaxEvolutionLevel(s.has("maxEvolutionLevel") && !s.get("maxEvolutionLevel").isNull() ? s.get("maxEvolutionLevel").asInt() : null);
+        card.setRarity(s.has("rarity") && !s.get("rarity").isNull() ? s.get("rarity").asText() : null);
+        card.setCount(s.has("count") && !s.get("count").isNull() ? s.get("count").asInt() : null);
+        card.setElixirCost(s.has("elixirCost") && !s.get("elixirCost").isNull() ? s.get("elixirCost").asInt() : null);
+        JsonNode iconNode2 = s.get("iconUrls");
+        if (iconNode2 != null && !iconNode2.isNull()) {
+            IconUrl iconUrl2 = new IconUrl();
+
+            iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? iconNode2.get("medium").asText() : null);
+            iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? iconNode2.get("evolutionMedium").asText() : null);
+            card.setIconUrl(iconUrl2);
+        }
+        return card;
     }
 
     private String readText(JsonNode json, String field) {
