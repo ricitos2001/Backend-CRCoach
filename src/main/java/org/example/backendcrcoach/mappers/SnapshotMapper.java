@@ -51,4 +51,26 @@ public class SnapshotMapper {
                 snapshot.getCapturedAt()
         );
     }
+
+    public static SnapshotRequestDTO toRequestDTO(PlayerProfile profile) {
+        SnapshotRequestDTO dto = new SnapshotRequestDTO();
+        dto.setTrophies(profile.getTrophies());
+        dto.setBestTrophies(profile.getBestTrophies());
+        dto.setWins(profile.getWins());
+        dto.setLosses(profile.getLosses());
+        dto.setBattleCount(profile.getBattleCount());
+        dto.setThreeCrownWins(profile.getThreeCrownWins());
+        dto.setChallengeCardsWon(profile.getChallengeCardsWon());
+        dto.setChallengeMaxWins(profile.getChallengeMaxWins());
+        dto.setTournamentCardsWon(profile.getTournamentCardsWon());
+        dto.setTournamentBattleCount(profile.getTournamentBattleCount());
+        dto.setDonations(profile.getDonations());
+        dto.setDonationsReceived(profile.getDonationsReceived());
+        dto.setTotalDonations(profile.getTotalDonations());
+        dto.setWarDayWins(profile.getWarDayWins());
+        dto.setClanCardsCollected(profile.getClanCardsCollected());
+        dto.setStarPoints(profile.getStarPoints());
+        dto.setExpPoints(profile.getExpPoints());
+        return dto;
+    }
 }
