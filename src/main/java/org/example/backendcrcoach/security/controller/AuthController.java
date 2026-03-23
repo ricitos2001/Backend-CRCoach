@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.example.backendcrcoach.domain.dto.UserRequestDTO;
 import org.example.backendcrcoach.domain.entities.User;
+import org.example.backendcrcoach.scheduling.UserSchedulingService;
 import org.example.backendcrcoach.security.dto.AuthResponse;
 import org.example.backendcrcoach.security.dto.UserLoginDTO;
 import org.example.backendcrcoach.security.jwt.JwtUtil;
@@ -21,22 +22,27 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final UserService userService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final UserSchedulingService userSchedulingService;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService, TokenBlacklistService tokenBlacklistService) {
+    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService, TokenBlacklistService tokenBlacklistService, org.example.backendcrcoach.scheduling.UserSchedulingService userSchedulingService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.userSchedulingService = userSchedulingService;
     }
 
     @PostMapping("/authenticate")
@@ -54,6 +60,18 @@ public class AuthController {
 
         // Agregar la cookie a la respuesta
         response.addCookie(jwtCookie);
+        // Si el usuario tiene playerTag vinculado, iniciar scheduling para este usuario
+        try {
+            Long userId = userDetails.getId();
+            User usuario = userService.obtenerUsuarioPorId(userId);
+            if (usuario.getPlayerTag() != null && !usuario.getPlayerTag().isBlank()) {
+                // intervalo por defecto 5 minutos (puede ser parametrizado)
+                userSchedulingService.startForCurrentUser(userId, 300000L);
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo iniciar scheduling para el usuario {}: {}", userDetails != null ? userDetails.getId() : "?", e.getMessage());
+        }
+
         return new AuthResponse(token);
     }
 
@@ -89,6 +107,17 @@ public class AuthController {
             response.addCookie(jwtCookie);
 
             return ResponseEntity.ok("Logout exitoso. Token añadido a la blacklist y cookie eliminada.");
+        }
+
+        // Además intentar detener la tarea programada del usuario actual (si hay contexto)
+        try {
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof CustomUserDetails) {
+                CustomUserDetails details = (CustomUserDetails) auth.getPrincipal();
+                userSchedulingService.stopForCurrentUser(details.getId());
+            }
+        } catch (Exception e) {
+            // ignore
         }
 
         return ResponseEntity.badRequest().body("No se encontró un token válido para cerrar sesión.");

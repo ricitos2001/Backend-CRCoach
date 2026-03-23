@@ -6,7 +6,6 @@ import org.example.backendcrcoach.services.PlayerProfileService;
 import org.example.backendcrcoach.services.CardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -19,30 +18,32 @@ public class ScheduledSyncService {
     private final PlayerProfileRepository playerProfileRepository;
     private final PlayerProfileService playerProfileService;
     private final CardService cardService;
+    private final UserSchedulingService userSchedulingService;
 
     public ScheduledSyncService(PlayerProfileRepository playerProfileRepository,
                                 PlayerProfileService playerProfileService,
-                                CardService cardService) {
+                                CardService cardService,
+                                UserSchedulingService userSchedulingService) {
         this.playerProfileRepository = playerProfileRepository;
         this.playerProfileService = playerProfileService;
         this.cardService = cardService;
+        this.userSchedulingService = userSchedulingService;
     }
 
-    @Scheduled(fixedDelayString = "${sync.profiles.fixedDelayMs:300000}")
     public void syncProfilesAndCreateSnapshots() {
+        // Método global que solo se ejecuta cuando no hay scheduling por usuario activo
+        if (userSchedulingService != null && userSchedulingService.hasActiveTasks()) {
+            log.debug("Skipping global scheduled sync because per-user tasks are active");
+            return;
+        }
         try {
             List<PlayerProfile> profiles = playerProfileRepository.findAll();
             log.info("Scheduled sync: found {} profiles to check", profiles.size());
             for (PlayerProfile profile : profiles) {
                 try {
-                    // Use playerProfileService.getPlayer which already fetches from API, saves profile and creates snapshot
-                    // But we want to avoid creating duplicate snapshots when no changes: so fetch API manually and compare
                     String tag = profile.getTag();
                     if (tag == null || tag.isBlank()) continue;
-
-                    // playerProfileService.getPlayer expects tag without '#'
                     String rawTag = tag.startsWith("#") ? tag.substring(1) : tag;
-                    // Call API via the service flow which will save snapshot and import battles (getPlayer crea snapshot condicionada)
                     playerProfileService.getPlayer(rawTag);
                 } catch (Exception e) {
                     log.warn("Failed to sync profile {}: {}", profile.getTag(), e.getMessage());
@@ -53,18 +54,25 @@ public class ScheduledSyncService {
         }
     }
 
-    // Sincronizar cartas periódicamente (por defecto cada 1 hora)
-    @Scheduled(fixedDelayString = "${sync.cards.fixedDelayMs:3600000}")
+    // Permite sincronizar un solo perfil (usado por UserSchedulingService)
+    void syncSingleProfile(String rawTag) {
+        try {
+            playerProfileService.getPlayer(rawTag);
+        } catch (Exception e) {
+            log.warn("Failed to sync single profile {}: {}", rawTag, e.getMessage());
+        }
+    }
+    // Sincronizar cartas (método público para invocar cuando se requiera)
     public void syncCardsFromApi() {
         try {
             int imported = cardService.importAllCardsFromApi();
             if (imported > 0) {
-                log.info("Imported {} new cards from Clash API during scheduled sync", imported);
+                log.info("Imported {} new cards from Clash API during manual sync", imported);
             } else {
-                log.debug("No new cards imported during scheduled sync");
+                log.debug("No new cards imported during manual sync");
             }
         } catch (Exception e) {
-            log.error("Error during scheduled cards sync: {}", e.getMessage(), e);
+            log.error("Error during manual cards sync: {}", e.getMessage(), e);
         }
     }
 
