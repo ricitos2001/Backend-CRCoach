@@ -91,14 +91,13 @@ public class PlayerProfile {
     @Column(nullable = false)
     private Integer totalExpPoints;
 
-    // Objetos y colecciones del JSON original serializados como texto JSON.
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String clan;
+    @ManyToOne
+    @JoinColumn(name = "clan_id")
+    private Clan clan;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String arena;
+    @ManyToOne
+    @JoinColumn(name = "arena_id")
+    private Arena arena;
 
     @Lob
     @Column(columnDefinition = "TEXT")

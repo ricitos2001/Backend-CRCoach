@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.backendcrcoach.domain.entities.Arena;
+import org.example.backendcrcoach.domain.entities.Clan;
 import org.example.backendcrcoach.domain.entities.PlayerCard;
 import java.util.List;
 
@@ -36,8 +38,8 @@ public class PlayerProfileRequestDTO {
     private Integer legacyTrophyRoadHighScore;
     private Integer totalExpPoints;
 
-    private String clan;
-    private String arena;
+    private Clan clan;
+    private Arena arena;
     private String leagueStatistics;
     private String badges;
     private String achievements;

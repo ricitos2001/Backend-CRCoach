@@ -5,6 +5,8 @@ import org.example.backendcrcoach.domain.dto.PlayerProfileRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerProfileResponseDTO;
 import org.example.backendcrcoach.domain.entities.PlayerProfile;
 import org.example.backendcrcoach.mappers.PlayerProfileMapper;
+import org.example.backendcrcoach.repositories.ArenaRepository;
+import org.example.backendcrcoach.repositories.ClanRepository;
 import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -17,9 +19,11 @@ import tools.jackson.databind.ObjectMapper;
 // ...existing code...
 import org.example.backendcrcoach.domain.entities.PlayerCard;
 import org.example.backendcrcoach.domain.entities.IconUrl;
+import org.example.backendcrcoach.domain.entities.Clan;
+import org.example.backendcrcoach.domain.entities.Arena;
+
 import java.util.ArrayList;
 import java.util.List;
-import org.example.backendcrcoach.services.PlayerCardService;
 
 import java.util.Optional;
 
@@ -31,8 +35,12 @@ public class PlayerProfileService {
     private final SnapshotService snapshotService;
     private final PlayerCardService playerCardService;
     private final WebClient webClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final BattleService battleService;
+    private final org.example.backendcrcoach.repositories.ClanRepository clanRepository;
+    private final org.example.backendcrcoach.repositories.ArenaRepository arenaRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ArenaService arenaService;
+    private final ClanService clanService;
 
     public PlayerProfileService(
             PlayerProfileRepository playerProfileRepository,
@@ -41,7 +49,9 @@ public class PlayerProfileService {
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
             BattleService battleService,
-            PlayerCardService playerCardService) {
+            PlayerCardService playerCardService,
+            ClanRepository clanRepository,
+            ArenaRepository arenaRepository, ArenaService arenaService, ClanService clanService) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
@@ -50,6 +60,10 @@ public class PlayerProfileService {
                 .build();
         this.battleService = battleService;
         this.playerCardService = playerCardService;
+        this.clanRepository = clanRepository;
+        this.arenaRepository = arenaRepository;
+        this.arenaService = arenaService;
+        this.clanService = clanService;
     }
 
     public Page<PlayerProfileResponseDTO> list(Pageable pageable) {
@@ -165,7 +179,6 @@ public class PlayerProfileService {
 
     private PlayerProfile mapApiResponseToEntity(JsonNode json) {
         PlayerProfile profile = new PlayerProfile();
-
         profile.setTag(readText(json, "tag"));
         profile.setName(readText(json, "name"));
         profile.setExpLevel(readInteger(json, "expLevel"));
@@ -190,8 +203,10 @@ public class PlayerProfileService {
         profile.setLegacyTrophyRoadHighScore(readInteger(json, "legacyTrophyRoadHighScore"));
         profile.setTotalExpPoints(readInteger(json, "totalExpPoints"));
 
-        profile.setClan(readJsonText(json, "clan"));
-        profile.setArena(readJsonText(json, "arena"));
+
+        profile.setClan(clanService.resolveClanFromNode(json.get("clan")));
+        profile.setArena(arenaService.resolveArenaFromNode(json.get("arena")));
+
         profile.setLeagueStatistics(readJsonText(json, "leagueStatistics"));
         profile.setBadges(readJsonText(json, "badges"));
         profile.setAchievements(readJsonText(json, "achievements"));

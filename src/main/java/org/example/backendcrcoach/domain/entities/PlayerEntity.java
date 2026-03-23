@@ -1,0 +1,55 @@
+package org.example.backendcrcoach.domain.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "player_entities")
+public class PlayerEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String tag;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column
+    private Integer startingTrophies;
+
+    @Column
+    private Integer crowns;
+
+    @Column
+    private Integer kingTowerHitPoints;
+
+    @ElementCollection
+    @CollectionTable(name = "player_entity_princess_towers_hit_points", joinColumns = @JoinColumn(name = "player_entity_id"))
+    @Column(name = "hit_points")
+    private List<Integer> princessTowersHitPoints;
+
+    @ManyToOne
+    @JoinColumn(name = "clan_entity_id")
+    private Clan clan;
+
+    @Column
+    private Integer globalRank;
+
+    @Column
+    private Double elixirLeaked;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "deck_id")
+    private Deck playerDeck;
+}
+

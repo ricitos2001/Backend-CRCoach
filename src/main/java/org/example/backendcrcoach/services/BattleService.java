@@ -4,15 +4,21 @@ import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
 import org.example.backendcrcoach.domain.entities.Battle;
+import org.example.backendcrcoach.domain.entities.Clan;
+import org.example.backendcrcoach.domain.entities.Deck;
+import org.example.backendcrcoach.domain.entities.IconUrl;
+import org.example.backendcrcoach.domain.entities.Arena;
+import org.example.backendcrcoach.domain.entities.PlayerCard;
+import org.example.backendcrcoach.domain.entities.PlayerEntity;
 import org.example.backendcrcoach.mappers.BattleMapper;
-import org.example.backendcrcoach.repositories.BattleRepository;
-import org.example.backendcrcoach.repositories.PlayerProfileRepository;
+import org.example.backendcrcoach.repositories.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -23,22 +29,35 @@ public class BattleService {
 
     private final BattleRepository battleRepository;
     private final PlayerProfileRepository playerProfileRepository;
+    private final PlayerEntityRepository playerEntityRepository;
+    private final ClanRepository clanRepository;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ArenaRepository arenaRepository;
+    private final ArenaService arenaService;
+    private final ClanService clanService;
 
     public BattleService(
             BattleRepository battleRepository,
             PlayerProfileRepository playerProfileRepository,
+            PlayerEntityRepository playerEntityRepository,
+            ClanRepository clanRepository,
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
-            @Value("${clash.royale.api.key}") String API_KEY
-    ) {
+            @Value("${clash.royale.api.key}") String API_KEY,
+            org.example.backendcrcoach.repositories.ArenaRepository arenaRepository,
+            ArenaService arenaService, ClanService clanService) {
         this.battleRepository = battleRepository;
         this.playerProfileRepository = playerProfileRepository;
+        this.playerEntityRepository = playerEntityRepository;
+        this.clanRepository = clanRepository;
         this.webClient = builder
                 .baseUrl(API_URL)
                 .defaultHeader("Authorization", "Bearer " + API_KEY)
                 .build();
+        this.arenaRepository = arenaRepository;
+        this.arenaService = arenaService;
+        this.clanService = clanService;
     }
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
@@ -46,6 +65,12 @@ public class BattleService {
         // Si el DTO incluye playerTag, intentar enlazar al PlayerProfile existente
         if (dto.getPlayerTag() != null) {
             playerProfileRepository.findByTag(dto.getPlayerTag()).ifPresent(battle::setPlayerProfile);
+        }
+        if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
+            playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(battle::setTeam);
+        }
+        if (dto.getOpponent() != null && dto.getOpponent().getTag() != null) {
+            playerEntityRepository.findByTag(normalizeTag(dto.getOpponent().getTag())).ifPresent(battle::setOpponent);
         }
         Battle saved = battleRepository.save(battle);
         return BattleMapper.toDTO(saved);
@@ -66,6 +91,25 @@ public class BattleService {
         return battleRepository.findById(id).map(existing -> {
             Battle updated = BattleMapper.toEntity(dto);
             updated.setId(existing.getId());
+
+            if (dto.getPlayerTag() != null) {
+                playerProfileRepository.findByTag(dto.getPlayerTag()).ifPresent(updated::setPlayerProfile);
+            } else {
+                updated.setPlayerProfile(existing.getPlayerProfile());
+            }
+
+            if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
+                playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(updated::setTeam);
+            } else {
+                updated.setTeam(existing.getTeam());
+            }
+
+            if (dto.getOpponent() != null && dto.getOpponent().getTag() != null) {
+                playerEntityRepository.findByTag(normalizeTag(dto.getOpponent().getTag())).ifPresent(updated::setOpponent);
+            } else {
+                updated.setOpponent(existing.getOpponent());
+            }
+
             Battle saved = battleRepository.save(updated);
             return BattleMapper.toDTO(saved);
         });
@@ -127,13 +171,82 @@ public class BattleService {
         battle.setDeckSelection(readText(json, "deckSelection"));
         battle.setIsHostedMatch(readBoolean(json, "isHostedMatch"));
         battle.setLeagueNumber(readInteger(json, "leagueNumber"));
-
-        battle.setArena(readJsonText(json, "arena"));
+        battle.setArena(arenaService.resolveArenaFromNode(json.get("arena")));
         battle.setGameMode(readJsonText(json, "gameMode"));
-        battle.setTeam(readJsonText(json, "team"));
-        battle.setOpponent(readJsonText(json, "opponent"));
+        battle.setTeam(resolvePlayerEntityFromArray(json.get("team")));
+        battle.setOpponent(resolvePlayerEntityFromArray(json.get("opponent")));
 
         return battle;
+    }
+
+    private PlayerEntity resolvePlayerEntityFromArray(JsonNode playersNode) {
+        if (playersNode == null || !playersNode.isArray() || playersNode.isEmpty()) return null;
+
+        JsonNode node = playersNode.get(0);
+        String rawTag = readText(node, "tag");
+        if (rawTag == null || rawTag.isBlank()) return null;
+
+        String normalizedTag = normalizeTag(rawTag);
+        PlayerEntity entity = playerEntityRepository.findByTag(normalizedTag).orElseGet(PlayerEntity::new);
+
+        entity.setTag(normalizedTag);
+        entity.setName(readText(node, "name"));
+        entity.setStartingTrophies(readInteger(node, "startingTrophies"));
+        entity.setCrowns(readInteger(node, "crowns"));
+        entity.setKingTowerHitPoints(readInteger(node, "kingTowerHitPoints"));
+        entity.setGlobalRank(readInteger(node, "globalRank"));
+        entity.setElixirLeaked(readDouble(node, "elixirLeaked"));
+        entity.setClan(clanService.resolveClanFromNode(node.get("clan")));
+
+        JsonNode princessNode = node.get("princessTowersHitPoints");
+        if (princessNode != null && princessNode.isArray()) {
+            List<Integer> hp = new ArrayList<>();
+            for (JsonNode n : princessNode) {
+                if (!n.isNull()) hp.add(n.asInt());
+            }
+            entity.setPrincessTowersHitPoints(hp);
+        }
+
+        entity.setPlayerDeck(resolveDeckFromArray(node.get("cards")));
+
+        return playerEntityRepository.save(entity);
+    }
+
+    private Deck resolveDeckFromArray(JsonNode cardsNode) {
+        if (cardsNode == null || !cardsNode.isArray() || cardsNode.isEmpty()) return null;
+
+        Deck deck = new Deck();
+        List<PlayerCard> cards = new ArrayList<>();
+
+        for (JsonNode c : cardsNode) {
+            PlayerCard card = new PlayerCard();
+            card.setCardId(readInteger(c, "id"));
+            card.setName(readText(c, "name"));
+            card.setLevel(readInteger(c, "level"));
+            card.setMaxLevel(readInteger(c, "maxLevel"));
+            card.setMaxEvolutionLevel(readInteger(c, "maxEvolutionLevel"));
+            card.setRarity(readText(c, "rarity"));
+            card.setElixirCost(readInteger(c, "elixirCost"));
+            card.setSupportCard(false);
+
+            JsonNode iconNode = c.get("iconUrls");
+            if (iconNode != null && !iconNode.isNull()) {
+                IconUrl icon = new IconUrl();
+                icon.setMedium(readText(iconNode, "medium"));
+                icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
+                card.setIconUrl(icon);
+            }
+
+            cards.add(card);
+        }
+
+        deck.setPlayerCards(cards);
+        return deck;
+    }
+
+    private String normalizeTag(String rawTag) {
+        if (rawTag == null || rawTag.isBlank()) return rawTag;
+        return rawTag.startsWith("#") ? rawTag : "#" + rawTag;
     }
 
     private String readText(JsonNode json, String field) {
@@ -146,6 +259,11 @@ public class BattleService {
         return node == null || node.isNull() ? null : node.asInt();
     }
 
+    private Double readDouble(JsonNode json, String field) {
+        JsonNode node = json.get(field);
+        return node == null || node.isNull() ? null : node.asDouble();
+    }
+
     private Boolean readBoolean(JsonNode json, String field) {
         JsonNode node = json.get(field);
         return node == null || node.isNull() ? null : node.asBoolean();
@@ -156,4 +274,3 @@ public class BattleService {
         return node == null || node.isNull() ? null : node.toString();
     }
 }
-

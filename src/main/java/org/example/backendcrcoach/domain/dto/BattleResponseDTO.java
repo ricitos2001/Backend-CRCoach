@@ -2,6 +2,8 @@ package org.example.backendcrcoach.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.backendcrcoach.domain.entities.Arena;
+import org.example.backendcrcoach.domain.entities.PlayerEntity;
 
 @Getter
 @AllArgsConstructor
@@ -14,10 +16,10 @@ public class BattleResponseDTO {
     private Boolean isHostedMatch;
     private Integer leagueNumber;
 
-    private String arena;
+    private Arena arena;
     private String gameMode;
-    private String team;
-    private String opponent;
+    private PlayerEntity team;
+    private PlayerEntity opponent;
     private String playerTag;
 }
 

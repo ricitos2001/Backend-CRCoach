@@ -2,14 +2,12 @@ package org.example.backendcrcoach.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.backendcrcoach.domain.entities.PlayerProfile;
 
 /**
  * Entidad para almacenar batallas (Battle) basada en el JSON de ejemplo.
  *
- * Nota: los objetos complejos (arena, gameMode, team, opponent) se almacenan
- * como texto JSON en columnas de tipo TEXT (@Lob). Esto mantiene la estructura
- * del JSON original y evita modelar todas las subentidades ahora.
+ * Nota: los objetos complejos arena y gameMode se almacenan como texto JSON,
+ * mientras que team y opponent se enlazan a PlayerEntity.
  */
 @Entity
 @Getter
@@ -44,26 +42,24 @@ public class Battle {
     @Column
     private Integer leagueNumber;
 
-    // Campos complejos serializados como JSON
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String arena;
+    @ManyToOne
+    @JoinColumn(name = "arena_entity_id")
+    private Arena arena;
 
     @Lob
     @Column(columnDefinition = "TEXT")
     private String gameMode;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String team;
+    @ManyToOne
+    @JoinColumn(name = "team_player_entity_id")
+    private PlayerEntity team;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String opponent;
+    @ManyToOne
+    @JoinColumn(name = "opponent_player_entity_id")
+    private PlayerEntity opponent;
 
     @ManyToOne
     @JoinColumn(name = "player_profile_id", nullable = true)
     private PlayerProfile playerProfile;
 
 }
-

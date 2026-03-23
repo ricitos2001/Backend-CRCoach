@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.backendcrcoach.domain.entities.Arena;
+import org.example.backendcrcoach.domain.entities.PlayerEntity;
 
 @Getter
 @Setter
@@ -16,12 +18,12 @@ public class BattleRequestDTO {
     private String deckSelection;
     private Boolean isHostedMatch;
     private Integer leagueNumber;
+    // Campos complejos como JSON crudo
+    private Arena arena;
+    private String gameMode;
+    private PlayerEntity team;
+    private PlayerEntity opponent;
     private String playerTag;
 
-    // Campos complejos como JSON crudo
-    private String arena;
-    private String gameMode;
-    private String team;
-    private String opponent;
 }
 
