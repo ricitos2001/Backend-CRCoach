@@ -62,10 +62,6 @@ public class ClanService {
         String clanName = readText(clanNode, "name");
         clan.setName((clanName == null || clanName.isBlank()) ? clanTag : clanName);
 
-        Integer badgeId = readInteger(clanNode, "badgeId");
-        if (badgeId != null && clan.getBadgeId() == null) {
-            clan.setBadgeId(badgeId.longValue());
-        }
 
         return clanRepository.save(clan);
     }

@@ -12,6 +12,5 @@ import lombok.Setter;
 public class ClanRequestDTO {
     private String tag;
     private String name;
-    private Long badgeId;
 }
 

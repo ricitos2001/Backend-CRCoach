@@ -8,7 +8,6 @@ public class ArenaMapper {
 
     public static Arena toEntity(ArenaRequestDTO dto) {
         Arena arena = new Arena();
-        arena.setId(dto.getId());
         arena.setName(dto.getName());
         arena.setRawName(dto.getRawName());
         return arena;

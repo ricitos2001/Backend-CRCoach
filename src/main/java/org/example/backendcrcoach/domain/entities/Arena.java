@@ -18,5 +18,16 @@ public class Arena {
     private String name;
     @Column(nullable = false)
     private String rawName;
+
+    @PrePersist
+    @PreUpdate
+    private void normalizeNames() {
+        if ((name == null || name.isBlank()) && rawName != null && !rawName.isBlank()) {
+            name = rawName;
+        }
+        if ((rawName == null || rawName.isBlank()) && name != null && !name.isBlank()) {
+            rawName = name;
+        }
+    }
 }
 

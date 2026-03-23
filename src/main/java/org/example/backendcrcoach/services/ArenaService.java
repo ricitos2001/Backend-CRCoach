@@ -62,10 +62,7 @@ public class ArenaService {
                 .orElseGet(Arena::new);
 
         arena.setRawName(rawName);
-        if (arena.getName() == null || arena.getName().isBlank()) {
-            arena.setName(rawName);
-        }
-
+        arena.setName(rawName);
         return arenaRepository.save(arena);
     }
 

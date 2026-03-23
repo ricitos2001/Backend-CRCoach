@@ -21,7 +21,7 @@ public class WebClientConfig {
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
 
                 // Timeout de respuesta total (30s)
-                .responseTimeout(Duration.ofSeconds(30))
+                .responseTimeout(Duration.ofSeconds(180))
 
                 // Timeout de lectura (30s sin recibir datos)
                 .doOnConnected(conn ->

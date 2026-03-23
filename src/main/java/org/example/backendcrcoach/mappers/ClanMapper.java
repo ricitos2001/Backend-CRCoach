@@ -10,7 +10,6 @@ public class ClanMapper {
         Clan clan = new Clan();
         clan.setTag(dto.getTag());
         clan.setName(dto.getName());
-        clan.setBadgeId(dto.getBadgeId());
         return clan;
     }
 
