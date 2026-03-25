@@ -50,7 +50,7 @@ public class PlayerCardService {
 
     public List<PlayerCardResponseDTO> importCardsForPlayer(String playerTag) {
         String response = webClient.get().uri("/players/{tag}", "#" + playerTag).retrieve().bodyToMono(String.class).block();
-        if (response == null || response.isBlank()) return java.util.List.of();
+        if (response == null || response.isBlank()) return List.of();
 
         JsonNode root;
         try {
