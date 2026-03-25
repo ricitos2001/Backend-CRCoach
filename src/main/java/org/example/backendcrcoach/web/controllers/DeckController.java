@@ -3,6 +3,7 @@ package org.example.backendcrcoach.web.controllers;
 import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
 import org.example.backendcrcoach.domain.dto.DeckResponseDTO;
 import org.example.backendcrcoach.services.DeckService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,33 +19,38 @@ public class DeckController {
     public DeckController(DeckService deckService) {
         this.deckService = deckService;
     }
-
+    @Operation(summary = "Listar mazos", description = "Devuelve todos los mazos almacenados.")
     @GetMapping
     public ResponseEntity<List<DeckResponseDTO>> list() {
         return ResponseEntity.ok(deckService.listAll());
     }
 
+    @Operation(summary = "Obtener mazo por ID", description = "Recupera un mazo por su ID.")
     @GetMapping("/{id}")
     public ResponseEntity<DeckResponseDTO> getById(@PathVariable Long id) {
         return deckService.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Obtener mazo por API ID", description = "Recupera un mazo por su ID externo (API).")
     @GetMapping("/api/{apiId}")
     public ResponseEntity<DeckResponseDTO> getByApiId(@PathVariable Long apiId) {
         return deckService.findByApiId(apiId).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Crear mazo", description = "Crea un nuevo mazo con los datos proporcionados.")
     @PostMapping
     public ResponseEntity<DeckResponseDTO> create(@RequestBody DeckRequestDTO dto) {
         DeckResponseDTO created = deckService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @Operation(summary = "Actualizar mazo", description = "Actualiza un mazo existente por su ID.")
     @PutMapping("/{id}")
     public ResponseEntity<DeckResponseDTO> update(@PathVariable Long id, @RequestBody DeckRequestDTO dto) {
         return deckService.update(id, dto).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Eliminar mazo", description = "Elimina un mazo por su ID.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         deckService.delete(id);

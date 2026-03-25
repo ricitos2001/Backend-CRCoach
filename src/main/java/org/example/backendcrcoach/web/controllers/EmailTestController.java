@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.web.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.example.backendcrcoach.services.EmailService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -24,6 +25,8 @@ public class EmailTestController {
         this.emailService = emailService;
     }
 
+
+    @Operation(summary = "Enviar correo de prueba", description = "Endpoint interno para enviar correos de prueba o enviar usando una plantilla.")
     @PostMapping("/test")
     public ResponseEntity<?> sendTest(@RequestBody Map<String, Object> body) {
         String email = (String) body.get("email");

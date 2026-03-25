@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -46,6 +47,7 @@ public class AuthController {
     }
 
     @PostMapping("/authenticate")
+    @Operation(summary = "Autenticar usuario", description = "Autentica un usuario con email y contraseña y devuelve un token JWT (además establece cookie).")
     public AuthResponse authenticate(@RequestBody UserLoginDTO request, HttpServletResponse response) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
@@ -77,6 +79,7 @@ public class AuthController {
 
     // Logout
     @PostMapping("/logout")
+    @Operation(summary = "Cerrar sesión", description = "Cierra la sesión del usuario invalidando el token (añadiéndolo a la blacklist) y eliminando la cookie JWT.")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
         // Manejar el token desde el encabezado Authorization
         String authorizationHeader = request.getHeader("Authorization");
@@ -125,6 +128,7 @@ public class AuthController {
 
     // Registro de usuario
     @PostMapping("/register")
+    @Operation(summary = "Registrar usuario", description = "Registra un nuevo usuario y devuelve un token JWT para el acceso inicial.")
     public AuthResponse register(@RequestBody @Valid UserRequestDTO dto) {
         // Registrar usuario usando el servicio
         User newUser = userService.createUser(dto);

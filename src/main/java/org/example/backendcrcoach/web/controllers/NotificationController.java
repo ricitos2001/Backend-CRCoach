@@ -24,21 +24,21 @@ public class NotificationController {
     }
 
     @GetMapping
-    @Operation(summary = "Get paginated list of notifications", description = "Retrieve a paginated list of notifications.", parameters = {@Parameter(name = "pageable", description = "Pagination information")})
+    @Operation(summary = "Listar notificaciones paginadas", description = "Recupera una lista paginada de notificaciones.", parameters = {@Parameter(name = "pageable", description = "Información de paginación")})
     public ResponseEntity<Page<NotificationResponseDTO>> getNotifications(Pageable pageable) {
         Page<NotificationResponseDTO> notifications = service.findAll(pageable);
         return ResponseEntity.ok(notifications);
     }
 
     @GetMapping("/myNotifications/{email}")
-    @Operation(summary = "Get paginated list of notifications by user email", description = "Retrieve a paginated list of notifications associated with a specific user email.", parameters = {@Parameter(name = "email", description = "User email"), @Parameter(name = "pageable", description = "Pagination information")})
+    @Operation(summary = "Listar notificaciones paginadas por correo", description = "Recupera una lista paginada de notificaciones asociadas a un correo de usuario específico.", parameters = {@Parameter(name = "email", description = "Correo electrónico del usuario"), @Parameter(name = "pageable", description = "Información de paginación")})
     public ResponseEntity<Page<NotificationResponseDTO>> getNotificationsByUserEmail(@PathVariable(name = "email") String email, Pageable pageable) {
         Page<NotificationResponseDTO> notifications = service.findByUserEmail(email, pageable);
         return ResponseEntity.ok(notifications);
     }
 
     @PostMapping
-    @Operation(summary = "Create a new notification", description = "Create a new notification with the provided details.", parameters = {@Parameter(name = "dto", description = "Notification details")})
+    @Operation(summary = "Crear nueva notificación", description = "Crea una nueva notificación con los datos proporcionados.", parameters = {@Parameter(name = "dto", description = "Detalles de la notificación")})
     public ResponseEntity<NotificationResponseDTO> create(@RequestBody @Valid NotificationRequestDTO dto) {
         NotificationResponseDTO saved = service.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
