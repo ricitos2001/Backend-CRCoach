@@ -63,5 +63,15 @@ public class DeckService {
     public void delete(Long id) {
         deckRepository.deleteById(id);
     }
+
+    public Deck persistDeckIfNeeded(Deck deck) {
+        if (deck == null) return null;
+        if (deck.getId() != null) return deck;
+        if (deck.getApiId() != null) {
+            return deckRepository.findByApiId(deck.getApiId()).orElseGet(() -> deckRepository.save(deck));
+        }
+        // No hay apiId ni id: simplemente persistir el deck
+        return deckRepository.save(deck);
+    }
 }
 

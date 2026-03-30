@@ -36,6 +36,7 @@ public class BattleService {
     private final ArenaRepository arenaRepository;
     private final ArenaService arenaService;
     private final ClanService clanService;
+    private final org.example.backendcrcoach.config.WebClientHelper webClientHelper;
 
     public BattleService(
             BattleRepository battleRepository,
@@ -46,7 +47,8 @@ public class BattleService {
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
             org.example.backendcrcoach.repositories.ArenaRepository arenaRepository,
-            ArenaService arenaService, ClanService clanService) {
+            ArenaService arenaService, ClanService clanService,
+            org.example.backendcrcoach.config.WebClientHelper webClientHelper) {
         this.battleRepository = battleRepository;
         this.playerProfileRepository = playerProfileRepository;
         this.playerEntityRepository = playerEntityRepository;
@@ -58,6 +60,7 @@ public class BattleService {
         this.arenaRepository = arenaRepository;
         this.arenaService = arenaService;
         this.clanService = clanService;
+        this.webClientHelper = webClientHelper;
     }
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
@@ -125,11 +128,7 @@ public class BattleService {
      * Devuelve el número de batallas importadas.
      */
     public int importBattlesForPlayer(String playerTag) {
-        String responseBody = webClient.get()
-                .uri("/players/{tag}/battlelog", "#" + playerTag)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", "#" + playerTag);
 
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);

@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.example.backendcrcoach.config.WebClientHelper;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -31,15 +32,18 @@ public class CardService {
     private final PlayerProfileRepository playerProfileRepository;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final WebClientHelper webClientHelper;
 
     public CardService(CardRepository cardRepository,
                        PlayerProfileRepository playerProfileRepository,
                        WebClient.Builder builder,
                        @Value("${clash.royale.api.url}") String API_URL,
-                       @Value("${clash.royale.api.key}") String API_KEY) {
+                       @Value("${clash.royale.api.key}") String API_KEY,
+                       WebClientHelper webClientHelper) {
         this.cardRepository = cardRepository;
         this.playerProfileRepository = playerProfileRepository;
         this.webClient = builder.baseUrl(API_URL).defaultHeader("Authorization", "Bearer " + API_KEY).build();
+        this.webClientHelper = webClientHelper;
     }
 
     public CardResponseDTO create(CardRequestDTO dto) {
@@ -65,12 +69,7 @@ public class CardService {
     }
 
     public int importAllCardsFromApi() {
-        String response = webClient.get()
-                .uri("/cards")
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+        String response = webClientHelper.fetchGetWithRetries(webClient, "/cards");
         if (response == null || response.isBlank()) return 0;
         JsonNode root;
         try {

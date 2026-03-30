@@ -6,7 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.example.backendcrcoach.domain.entities.Arena;
 import org.example.backendcrcoach.domain.entities.Clan;
+import org.example.backendcrcoach.domain.entities.Deck;
 import org.example.backendcrcoach.domain.entities.PlayerCard;
+import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
 import java.util.List;
 
 @Getter
@@ -45,9 +47,9 @@ public class PlayerProfileRequestDTO {
     private String achievements;
     private List<PlayerCard> playerCards;
     private List<PlayerCard> supportCards;
-    private String currentDeck;
-    private String currentDeckSupportCards;
-    private String currentFavouriteCard;
+    private Deck currentDeck;
+    private Deck currentDeckSupportCards;
+    private PlayerCard currentFavouriteCard;
     private String currentPathOfLegendSeasonResult;
     private String lastPathOfLegendSeasonResult;
     private String bestPathOfLegendSeasonResult;

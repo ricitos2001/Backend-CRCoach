@@ -5,7 +5,6 @@ import lombok.*;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
-import org.example.backendcrcoach.domain.entities.PlayerCard;
 
 @Entity
 @Getter
@@ -99,15 +98,12 @@ public class PlayerProfile {
     @JoinColumn(name = "arena_id")
     private Arena arena;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String leagueStatistics;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String badges;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String achievements;
 
@@ -130,31 +126,27 @@ public class PlayerProfile {
         }
     }
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String currentDeck;
+    @ManyToOne
+    @JoinColumn(name = "current_deck_id")
+    private Deck currentDeck;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String currentDeckSupportCards;
+    @ManyToOne
+    @JoinColumn(name = "current_deck_support_cards_id")
+    private Deck currentDeckSupportCards;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String currentFavouriteCard;
+    @OneToOne
+    @JoinColumn(name = "current_favourite_card_id")
+    private PlayerCard currentFavouriteCard;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String currentPathOfLegendSeasonResult;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String lastPathOfLegendSeasonResult;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String bestPathOfLegendSeasonResult;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String progress;
 

@@ -12,6 +12,7 @@ import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.example.backendcrcoach.config.WebClientHelper;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -27,15 +28,18 @@ public class PlayerCardService {
     private final PlayerProfileRepository playerProfileRepository;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final WebClientHelper webClientHelper;
 
     public PlayerCardService(PlayerCardRepository playerCardRepository,
                              PlayerProfileRepository playerProfileRepository,
                              WebClient.Builder builder,
                              @Value("${clash.royale.api.url}") String API_URL,
-                             @Value("${clash.royale.api.key}") String API_KEY) {
+                             @Value("${clash.royale.api.key}") String API_KEY,
+                             WebClientHelper webClientHelper) {
         this.playerCardRepository = playerCardRepository;
         this.playerProfileRepository = playerProfileRepository;
         this.webClient = builder.baseUrl(API_URL).defaultHeader("Authorization", "Bearer " + API_KEY).build();
+        this.webClientHelper = webClientHelper;
     }
 
     public List<PlayerCardResponseDTO> listAll() {
@@ -49,7 +53,7 @@ public class PlayerCardService {
     }
 
     public List<PlayerCardResponseDTO> importCardsForPlayer(String playerTag) {
-        String response = webClient.get().uri("/players/{tag}", "#" + playerTag).retrieve().bodyToMono(String.class).block();
+        String response = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", "#" + playerTag);
         if (response == null || response.isBlank()) return List.of();
 
         JsonNode root;
@@ -68,25 +72,7 @@ public class PlayerCardService {
                 Integer cardId = node.has("id") && !node.get("id").isNull() ? node.get("id").asInt() : null;
                 if (cardId == null) continue;
                 if (playerCardRepository.existsByCardIdAndPlayerProfileTag(cardId, "#" + playerTag)) continue;
-
-                PlayerCard card = new PlayerCard();
-                card.setCardId(cardId);
-                card.setName(node.has("name") && !node.get("name").isNull() ? objectMapper.convertValue(node.get("name"), String.class) : null);
-                card.setLevel(node.has("level") && !node.get("level").isNull() ? node.get("level").asInt() : null);
-                card.setMaxLevel(node.has("maxLevel") && !node.get("maxLevel").isNull() ? node.get("maxLevel").asInt() : null);
-                card.setMaxEvolutionLevel(node.has("maxEvolutionLevel") && !node.get("maxEvolutionLevel").isNull() ? node.get("maxEvolutionLevel").asInt() : null);
-                card.setRarity(node.has("rarity") && !node.get("rarity").isNull() ? objectMapper.convertValue(node.get("rarity"), String.class) : null);
-                card.setCount(node.has("count") && !node.get("count").isNull() ? node.get("count").asInt() : null);
-                card.setElixirCost(node.has("elixirCost") && !node.get("elixirCost").isNull() ? node.get("elixirCost").asInt() : null);
-
-                JsonNode iconNode = node.get("iconUrls");
-                if (iconNode != null && !iconNode.isNull()) {
-                    IconUrl icon = new IconUrl();
-                    icon.setMedium(iconNode.has("medium") && !iconNode.get("medium").isNull() ? objectMapper.convertValue(iconNode.get("medium"), String.class) : null);
-                    icon.setEvolutionMedium(iconNode.has("evolutionMedium") && !iconNode.get("evolutionMedium").isNull() ? objectMapper.convertValue(iconNode.get("evolutionMedium"), String.class) : null);
-                    card.setIconUrl(icon);
-                }
-
+                PlayerCard card = parseCards(node);
                 card.setSupportCard(false);
                 playerProfileRepository.findByTag("#" + playerTag).ifPresent(card::setPlayerProfile);
                 saved.add(playerCardRepository.save(card));
@@ -100,25 +86,7 @@ public class PlayerCardService {
                 Integer cardId = node.has("id") && !node.get("id").isNull() ? node.get("id").asInt() : null;
                 if (cardId == null) continue;
                 if (playerCardRepository.existsByCardIdAndPlayerProfileTag(cardId, "#" + playerTag)) continue;
-
-                PlayerCard card = new PlayerCard();
-                card.setCardId(cardId);
-                card.setName(node.has("name") && !node.get("name").isNull() ? objectMapper.convertValue(node.get("name"), String.class) : null);
-                card.setLevel(node.has("level") && !node.get("level").isNull() ? node.get("level").asInt() : null);
-                card.setMaxLevel(node.has("maxLevel") && !node.get("maxLevel").isNull() ? node.get("maxLevel").asInt() : null);
-                card.setMaxEvolutionLevel(node.has("maxEvolutionLevel") && !node.get("maxEvolutionLevel").isNull() ? node.get("maxEvolutionLevel").asInt() : null);
-                card.setRarity(node.has("rarity") && !node.get("rarity").isNull() ? objectMapper.convertValue(node.get("rarity"), String.class) : null);
-                card.setCount(node.has("count") && !node.get("count").isNull() ? node.get("count").asInt() : null);
-                card.setElixirCost(node.has("elixirCost") && !node.get("elixirCost").isNull() ? node.get("elixirCost").asInt() : null);
-
-                JsonNode iconNode = node.get("iconUrls");
-                if (iconNode != null && !iconNode.isNull()) {
-                    IconUrl icon = new IconUrl();
-                    icon.setMedium(iconNode.has("medium") && !iconNode.get("medium").isNull() ? objectMapper.convertValue(iconNode.get("medium"), String.class) : null);
-                    icon.setEvolutionMedium(iconNode.has("evolutionMedium") && !iconNode.get("evolutionMedium").isNull() ? objectMapper.convertValue(iconNode.get("evolutionMedium"), String.class) : null);
-                    card.setIconUrl(icon);
-                }
-
+                PlayerCard card = parseCards(node);
                 card.setSupportCard(true);
                 playerProfileRepository.findByTag("#" + playerTag).ifPresent(card::setPlayerProfile);
                 saved.add(playerCardRepository.save(card));
@@ -132,6 +100,27 @@ public class PlayerCardService {
      * Guarda las playerCards que ya estén asociadas en el objeto PlayerProfile.
      * Evita duplicados por cardId y asigna la relación bidireccional.
      */
+
+    public PlayerCard parseCards(JsonNode s) {
+        PlayerCard card = new PlayerCard();
+        card.setCardId(s.has("id") && !s.get("id").isNull() ? s.get("id").asInt() : null);
+        card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asString() : null);
+        card.setLevel(s.has("level") && !s.get("level").isNull() ? s.get("level").asInt() : null);
+        card.setMaxLevel(s.has("maxLevel") && !s.get("maxLevel").isNull() ? s.get("maxLevel").asInt() : null);
+        card.setMaxEvolutionLevel(s.has("maxEvolutionLevel") && !s.get("maxEvolutionLevel").isNull() ? s.get("maxEvolutionLevel").asInt() : null);
+        card.setRarity(s.has("rarity") && !s.get("rarity").isNull() ? s.get("rarity").asString() : null);
+        card.setCount(s.has("count") && !s.get("count").isNull() ? s.get("count").asInt() : null);
+        card.setElixirCost(s.has("elixirCost") && !s.get("elixirCost").isNull() ? s.get("elixirCost").asInt() : null);
+        JsonNode iconNode2 = s.get("iconUrls");
+        if (iconNode2 != null && !iconNode2.isNull()) {
+            IconUrl iconUrl2 = new IconUrl();
+
+            iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? iconNode2.get("medium").asString() : null);
+            iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? iconNode2.get("evolutionMedium").asText() : null);
+            card.setIconUrl(iconUrl2);
+        }
+        return card;
+    }
     public void saveCardsFromProfile(PlayerProfile profile) {
         if (profile == null || profile.getPlayerCards() == null) return;
 
@@ -156,6 +145,30 @@ public class PlayerCardService {
             if (!present) profile.getPlayerCards().add(saved);
             existingIds.add(cid);
         }
+    }
+
+    /**
+     * Persiste (o reutiliza) la carta favorita antes de asignarla al PlayerProfile
+     * para evitar referencias transientes. Si la carta ya tiene id se devuelve tal cual.
+     * Si existe una carta con el mismo cardId para ese perfil se reutiliza.
+     */
+    public PlayerCard persistFavouriteCardIfNeeded(PlayerProfile profile, PlayerCard card) {
+        if (card == null) return null;
+        if (card.getId() != null) return card;
+
+        Integer cid = card.getCardId();
+        if (cid != null && profile != null) {
+            // Buscar entre las cartas ya guardadas para este perfil
+            List<PlayerCard> existing = playerCardRepository.findByPlayerProfileTag(profile.getTag());
+            for (PlayerCard pc : existing) {
+                if (cid.equals(pc.getCardId())) return pc;
+            }
+        }
+
+        // Asociar al perfil si está disponible (si el perfil no está guardado aún, la columna player_profile_id
+        // puede quedar a NULL; más adelante se re-asociará si es necesario).
+        if (profile != null) card.setPlayerProfile(profile);
+        return playerCardRepository.save(card);
     }
 }
 

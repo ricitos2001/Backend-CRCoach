@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.backendcrcoach.domain.entities.Arena;
 import org.example.backendcrcoach.domain.entities.Clan;
+import org.example.backendcrcoach.domain.entities.Deck;
+import org.example.backendcrcoach.domain.entities.PlayerCard;
 
 import java.util.List;
 
@@ -41,11 +43,11 @@ public class PlayerProfileResponseDTO {
     private String leagueStatistics;
     private String badges;
     private String achievements;
-    private List<PlayerCardResponseDTO> playerCards;
-    private List<PlayerCardResponseDTO> supportCards;
-    private String currentDeck;
-    private String currentDeckSupportCards;
-    private String currentFavouriteCard;
+    private List<PlayerCard> playerCards;
+    private List<PlayerCard> supportCards;
+    private Deck currentDeck;
+    private Deck currentDeckSupportCards;
+    private PlayerCard currentFavouriteCard;
     private String currentPathOfLegendSeasonResult;
     private String lastPathOfLegendSeasonResult;
     private String bestPathOfLegendSeasonResult;

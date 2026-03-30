@@ -3,23 +3,26 @@ package org.example.backendcrcoach.services;
 import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.PlayerProfileRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerProfileResponseDTO;
-import org.example.backendcrcoach.domain.entities.Card;
+// ...existing code...
 import org.example.backendcrcoach.domain.entities.PlayerProfile;
 import org.example.backendcrcoach.mappers.PlayerProfileMapper;
-import org.example.backendcrcoach.repositories.ArenaRepository;
-import org.example.backendcrcoach.repositories.ClanRepository;
+// ...existing code...
 import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.example.backendcrcoach.config.WebClientHelper;
 import org.springframework.web.bind.annotation.RequestBody;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 // ...existing code...
 import org.example.backendcrcoach.domain.entities.PlayerCard;
-import org.example.backendcrcoach.domain.entities.IconUrl;
+import org.example.backendcrcoach.domain.entities.Deck;
+import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
+import org.example.backendcrcoach.mappers.DeckMapper;
+import org.example.backendcrcoach.repositories.DeckRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +41,9 @@ public class PlayerProfileService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArenaService arenaService;
     private final ClanService clanService;
+    private final DeckRepository deckRepository;
+    private final DeckService deckService;
+    private final WebClientHelper webClientHelper;
 
     public PlayerProfileService(
             PlayerProfileRepository playerProfileRepository,
@@ -48,7 +54,8 @@ public class PlayerProfileService {
             BattleService battleService,
             PlayerCardService playerCardService,
             ArenaService arenaService,
-            ClanService clanService) {
+            ClanService clanService,
+            DeckRepository deckRepository, DeckService deckService, WebClientHelper webClientHelper) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
@@ -59,6 +66,9 @@ public class PlayerProfileService {
         this.playerCardService = playerCardService;
         this.arenaService = arenaService;
         this.clanService = clanService;
+        this.deckRepository = deckRepository;
+        this.deckService = deckService;
+        this.webClientHelper = webClientHelper;
     }
 
     public Page<PlayerProfileResponseDTO> list(Pageable pageable) {
@@ -78,7 +88,13 @@ public class PlayerProfileService {
         if (dto.getTag() != null && playerProfileRepository.existsByTag(dto.getTag())) {
             throw new IllegalArgumentException("Ya existe un PlayerProfile con tag: " + dto.getTag());
         }
-        PlayerProfile saved = playerProfileRepository.save(PlayerProfileMapper.toEntity(dto));
+        PlayerProfile profile = PlayerProfileMapper.toEntity(dto);
+        // Persistir mazos si vienen en el DTO para evitar referencias transientes
+        profile.setCurrentDeck(deckService.persistDeckIfNeeded(profile.getCurrentDeck()));
+        profile.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(profile.getCurrentDeckSupportCards()));
+        // Persistir carta favorita si viene en el DTO para evitar referencias transientes
+        profile.setCurrentFavouriteCard(playerCardService.persistFavouriteCardIfNeeded(profile, profile.getCurrentFavouriteCard()));
+        PlayerProfile saved = playerProfileRepository.save(profile);
         return PlayerProfileMapper.toDTO(saved);
     }
 
@@ -88,6 +104,11 @@ public class PlayerProfileService {
             throw new IllegalArgumentException("Ya existe un PlayerProfile con tag: " + dto.getTag());
         }
         updateBasicFields(dto, profile);
+        // Persistir mazos si fueron cambiados para evitar referencias transientes
+        profile.setCurrentDeck(deckService.persistDeckIfNeeded(profile.getCurrentDeck()));
+        profile.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(profile.getCurrentDeckSupportCards()));
+        // Persistir carta favorita si fue cambiada
+        profile.setCurrentFavouriteCard(playerCardService.persistFavouriteCardIfNeeded(profile, profile.getCurrentFavouriteCard()));
         PlayerProfile saved = playerProfileRepository.save(profile);
         return PlayerProfileMapper.toDTO(saved);
     }
@@ -141,11 +162,7 @@ public class PlayerProfileService {
     }
 
     public PlayerProfileResponseDTO getPlayer(String playerTag) {
-        String responseBody = webClient.get()
-                .uri("/players/{tag}", "#" + playerTag)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", "#" + playerTag);
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener el perfil del jugador con tag: " + playerTag);
         }
@@ -210,8 +227,18 @@ public class PlayerProfileService {
             existing.setBestPathOfLegendSeasonResult(playerProfile.getBestPathOfLegendSeasonResult());
             existing.setProgress(playerProfile.getProgress());
 
+            // Persistir o asociar mazos antes de guardar el perfil para evitar referencias transientes
+            existing.setCurrentDeck(deckService.persistDeckIfNeeded(existing.getCurrentDeck()));
+            existing.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(existing.getCurrentDeckSupportCards()));
+            // Persistir o asociar carta favorita antes de guardar el perfil
+            existing.setCurrentFavouriteCard(playerCardService.persistFavouriteCardIfNeeded(existing, existing.getCurrentFavouriteCard()));
             savedProfile = playerProfileRepository.save(existing);
         } else {
+            // Persistir o asociar mazos antes de guardar el perfil para evitar referencias transientes
+            playerProfile.setCurrentDeck(deckService.persistDeckIfNeeded(playerProfile.getCurrentDeck()));
+            playerProfile.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(playerProfile.getCurrentDeckSupportCards()));
+            // Persistir o asociar carta favorita antes de guardar el perfil
+            playerProfile.setCurrentFavouriteCard(playerCardService.persistFavouriteCardIfNeeded(playerProfile, playerProfile.getCurrentFavouriteCard()));
             savedProfile = playerProfileRepository.save(playerProfile);
             statsChanged = true; // nuevo perfil -> snapshot
         }
@@ -294,7 +321,7 @@ public class PlayerProfileService {
         if (cardsNode != null && cardsNode.isArray()) {
             List<PlayerCard> cardList = new ArrayList<>();
             for (JsonNode c : cardsNode) {
-                PlayerCard card = parseCards(c);
+                PlayerCard card = playerCardService.parseCards(c);
                 card.setPlayerProfile(profile);
                 card.setSupportCard(false);
 
@@ -309,7 +336,7 @@ public class PlayerProfileService {
         if (supportNode != null && supportNode.isArray()) {
             List<PlayerCard> supportList = new ArrayList<>();
             for (JsonNode s : supportNode) {
-                PlayerCard card = parseCards(s);
+                PlayerCard card = playerCardService.parseCards(s);
                 card.setSupportCard(true);
                 supportList.add(card);
             }
@@ -317,9 +344,59 @@ public class PlayerProfileService {
         } else {
             profile.setSupportCards(null);
         }
-        profile.setCurrentDeck(readJsonText(json, "currentDeck"));
-        profile.setCurrentDeckSupportCards(readJsonText(json, "currentDeckSupportCards"));
-        profile.setCurrentFavouriteCard(readJsonText(json, "currentFavouriteCard"));
+
+        // currentDeck may be an object or an array of cards (from API). Handle both.
+        JsonNode deckNode = json.get("currentDeck");
+        if (deckNode != null && !deckNode.isNull()) {
+            if (deckNode.isArray()) {
+                List<PlayerCard> deckCards = new ArrayList<>();
+                for (JsonNode c : deckNode) {
+                    PlayerCard card = playerCardService.parseCards(c);
+                    deckCards.add(card);
+                }
+                DeckRequestDTO deckDto = new DeckRequestDTO();
+                deckDto.setApiId(null);
+                deckDto.setArchetype(null);
+                deckDto.setPlayerCards(deckCards);
+                profile.setCurrentDeck(DeckMapper.toEntity(deckDto));
+            } else {
+                DeckRequestDTO deckDto = objectMapper.convertValue(deckNode, DeckRequestDTO.class);
+                profile.setCurrentDeck(DeckMapper.toEntity(deckDto));
+            }
+        } else {
+            profile.setCurrentDeck(null);
+        }
+
+        // currentDeckSupportCards may also be an array (support cards) or an object
+        JsonNode supportDeckNode = json.get("currentDeckSupportCards");
+        if (supportDeckNode != null && !supportDeckNode.isNull()) {
+            if (supportDeckNode.isArray()) {
+                List<PlayerCard> supportCards = new ArrayList<>();
+                for (JsonNode c : supportDeckNode) {
+                    PlayerCard card = playerCardService.parseCards(c);
+                    supportCards.add(card);
+                }
+                DeckRequestDTO supportDto = new DeckRequestDTO();
+                supportDto.setApiId(null);
+                supportDto.setArchetype(null);
+                supportDto.setPlayerCards(supportCards);
+                profile.setCurrentDeckSupportCards(DeckMapper.toEntity(supportDto));
+            } else {
+                DeckRequestDTO supportDto = objectMapper.convertValue(supportDeckNode, DeckRequestDTO.class);
+                profile.setCurrentDeckSupportCards(DeckMapper.toEntity(supportDto));
+            }
+        } else {
+            profile.setCurrentDeckSupportCards(null);
+        }
+
+        JsonNode favouriteCard = json.get("currentFavouriteCard");
+        if (favouriteCard != null && !favouriteCard.isNull()) {
+            PlayerCard card = playerCardService.parseCards(favouriteCard);
+            profile.setCurrentFavouriteCard(card);
+        } else {
+            profile.setCurrentFavouriteCard(null);
+        }
+
         profile.setCurrentPathOfLegendSeasonResult(readJsonText(json, "currentPathOfLegendSeasonResult"));
         profile.setLastPathOfLegendSeasonResult(readJsonText(json, "lastPathOfLegendSeasonResult"));
         profile.setBestPathOfLegendSeasonResult(readJsonText(json, "bestPathOfLegendSeasonResult"));
@@ -328,26 +405,7 @@ public class PlayerProfileService {
         return profile;
     }
 
-    private PlayerCard parseCards(JsonNode s) {
-        PlayerCard card = new PlayerCard();
-        card.setCardId(s.has("id") && !s.get("id").isNull() ? s.get("id").asInt() : null);
-        card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asText() : null);
-        card.setLevel(s.has("level") && !s.get("level").isNull() ? s.get("level").asInt() : null);
-        card.setMaxLevel(s.has("maxLevel") && !s.get("maxLevel").isNull() ? s.get("maxLevel").asInt() : null);
-        card.setMaxEvolutionLevel(s.has("maxEvolutionLevel") && !s.get("maxEvolutionLevel").isNull() ? s.get("maxEvolutionLevel").asInt() : null);
-        card.setRarity(s.has("rarity") && !s.get("rarity").isNull() ? s.get("rarity").asText() : null);
-        card.setCount(s.has("count") && !s.get("count").isNull() ? s.get("count").asInt() : null);
-        card.setElixirCost(s.has("elixirCost") && !s.get("elixirCost").isNull() ? s.get("elixirCost").asInt() : null);
-        JsonNode iconNode2 = s.get("iconUrls");
-        if (iconNode2 != null && !iconNode2.isNull()) {
-            IconUrl iconUrl2 = new IconUrl();
 
-            iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? iconNode2.get("medium").asText() : null);
-            iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? iconNode2.get("evolutionMedium").asText() : null);
-            card.setIconUrl(iconUrl2);
-        }
-        return card;
-    }
 
     private String readText(JsonNode json, String field) {
         JsonNode node = json.get(field);
@@ -363,6 +421,5 @@ public class PlayerProfileService {
         JsonNode node = json.get(field);
         return node == null || node.isNull() ? null : node.toString();
     }
-
 }
 

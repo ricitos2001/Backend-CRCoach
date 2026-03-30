@@ -46,7 +46,6 @@ public class Battle {
     @JoinColumn(name = "arena_entity_id")
     private Arena arena;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String gameMode;
 
