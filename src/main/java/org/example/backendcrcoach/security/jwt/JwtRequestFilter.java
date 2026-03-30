@@ -59,7 +59,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         // Validar y autenticar el token si se obtuvo
         if (jwt != null) {
-            limpiarCookie(response);
             username = jwtUtil.extractUsername(jwt);
         }
 
