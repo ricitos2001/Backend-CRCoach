@@ -44,6 +44,7 @@ public class PlayerProfileService {
     private final DeckRepository deckRepository;
     private final DeckService deckService;
     private final WebClientHelper webClientHelper;
+    private final LeagueStadisticService leagueStadisticService;
 
     public PlayerProfileService(
             PlayerProfileRepository playerProfileRepository,
@@ -55,7 +56,7 @@ public class PlayerProfileService {
             PlayerCardService playerCardService,
             ArenaService arenaService,
             ClanService clanService,
-            DeckRepository deckRepository, DeckService deckService, WebClientHelper webClientHelper) {
+            DeckRepository deckRepository, DeckService deckService, WebClientHelper webClientHelper, LeagueStadisticService leagueStadisticService) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
@@ -69,6 +70,7 @@ public class PlayerProfileService {
         this.deckRepository = deckRepository;
         this.deckService = deckService;
         this.webClientHelper = webClientHelper;
+        this.leagueStadisticService = leagueStadisticService;
     }
 
     public Page<PlayerProfileResponseDTO> list(Pageable pageable) {
@@ -92,9 +94,15 @@ public class PlayerProfileService {
         // Persistir mazos si vienen en el DTO para evitar referencias transientes
         profile.setCurrentDeck(deckService.persistDeckIfNeeded(profile.getCurrentDeck()));
         profile.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(profile.getCurrentDeckSupportCards()));
-        // Persistir carta favorita si viene en el DTO para evitar referencias transientes
-        profile.setCurrentFavouriteCard(playerCardService.persistFavouriteCardIfNeeded(profile, profile.getCurrentFavouriteCard()));
+        // Si hay carta favorita en el DTO, la guardamos después de persistir el perfil
+        PlayerCard favCard = profile.getCurrentFavouriteCard();
+        profile.setCurrentFavouriteCard(null);
         PlayerProfile saved = playerProfileRepository.save(profile);
+        if (favCard != null) {
+            PlayerCard savedFav = playerCardService.persistFavouriteCardIfNeeded(saved, favCard);
+            saved.setCurrentFavouriteCard(savedFav);
+            saved = playerProfileRepository.save(saved);
+        }
         return PlayerProfileMapper.toDTO(saved);
     }
 
@@ -218,10 +226,55 @@ public class PlayerProfileService {
             existing.setLeagueStatistics(playerProfile.getLeagueStatistics());
             existing.setBadges(playerProfile.getBadges());
             existing.setAchievements(playerProfile.getAchievements());
-            existing.setPlayerCards(playerProfile.getPlayerCards());
+            // Reasignar el playerProfile en las PlayerCard traidas desde la API
+            // para que apunten al entity gestionado (existing) y evitar referencias
+            // a instancias transientes cuando Hibernate haga flush durante queries.
+            if (playerProfile.getPlayerCards() != null) {
+                // No reemplazar la colección gestionada por Hibernate cuando orphanRemoval=true.
+                // Actualizar la colección en sitio: limpiar y añadir las nuevas entidades.
+                if (existing.getPlayerCards() == null) {
+                    existing.setPlayerCards(new java.util.ArrayList<>());
+                } else {
+                    existing.getPlayerCards().clear();
+                }
+                for (PlayerCard pc : playerProfile.getPlayerCards()) {
+                    pc.setPlayerProfile(existing);
+                    existing.getPlayerCards().add(pc);
+                }
+            } else {
+                // Si la API no devuelve playerCards, vaciar la colección gestionada en lugar de asignar null
+                if (existing.getPlayerCards() != null) {
+                    existing.getPlayerCards().clear();
+                }
+            }
             existing.setCurrentDeck(playerProfile.getCurrentDeck());
             existing.setCurrentDeckSupportCards(playerProfile.getCurrentDeckSupportCards());
-            existing.setCurrentFavouriteCard(playerProfile.getCurrentFavouriteCard());
+            // Reasignar supportCards si vienen en el profile de la API
+            if (playerProfile.getSupportCards() != null) {
+                for (PlayerCard sc : playerProfile.getSupportCards()) {
+                    sc.setPlayerProfile(existing);
+                    sc.setSupportCard(true);
+                }
+                // No hay setter directo para supportCards que almacene la lista separada,
+                // pero playerCards contiene tanto normales como support (con supportCard=true)
+                // si se desea mantener list separado se puede añadir; aquí actualizamos
+                // la colección principal para incluir las support cards si no están ya.
+                if (existing.getPlayerCards() == null) {
+                    existing.setPlayerCards(new java.util.ArrayList<>());
+                }
+                for (PlayerCard sc : playerProfile.getSupportCards()) {
+                    boolean present = existing.getPlayerCards().stream().anyMatch(c -> java.util.Objects.equals(c.getCardId(), sc.getCardId()) && Boolean.TRUE.equals(c.getSupportCard()));
+                    if (!present) {
+                        sc.setPlayerProfile(existing);
+                        sc.setSupportCard(true);
+                        existing.getPlayerCards().add(sc);
+                    }
+                }
+            }
+            // Mantener la carta favorita aparte para evitar asignar una instancia transiente
+            // directamente al entity gestionado por Hibernate.
+            PlayerCard favFromApi = playerProfile.getCurrentFavouriteCard();
+            existing.setCurrentFavouriteCard(null);
             existing.setCurrentPathOfLegendSeasonResult(playerProfile.getCurrentPathOfLegendSeasonResult());
             existing.setLastPathOfLegendSeasonResult(playerProfile.getLastPathOfLegendSeasonResult());
             existing.setBestPathOfLegendSeasonResult(playerProfile.getBestPathOfLegendSeasonResult());
@@ -230,16 +283,28 @@ public class PlayerProfileService {
             // Persistir o asociar mazos antes de guardar el perfil para evitar referencias transientes
             existing.setCurrentDeck(deckService.persistDeckIfNeeded(existing.getCurrentDeck()));
             existing.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(existing.getCurrentDeckSupportCards()));
-            // Persistir o asociar carta favorita antes de guardar el perfil
-            existing.setCurrentFavouriteCard(playerCardService.persistFavouriteCardIfNeeded(existing, existing.getCurrentFavouriteCard()));
+            // Guardar el perfil primero sin la carta favorita. Después persistir la carta favorita asociada
+            // al perfil ya guardado para evitar referencias transientes.
             savedProfile = playerProfileRepository.save(existing);
+            if (favFromApi != null) {
+                PlayerCard savedFav = playerCardService.persistFavouriteCardIfNeeded(savedProfile, favFromApi);
+                savedProfile.setCurrentFavouriteCard(savedFav);
+                savedProfile = playerProfileRepository.save(savedProfile);
+            }
         } else {
             // Persistir o asociar mazos antes de guardar el perfil para evitar referencias transientes
+            PlayerCard favFromApi = playerProfile.getCurrentFavouriteCard();
+            playerProfile.setCurrentFavouriteCard(null);
             playerProfile.setCurrentDeck(deckService.persistDeckIfNeeded(playerProfile.getCurrentDeck()));
             playerProfile.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(playerProfile.getCurrentDeckSupportCards()));
-            // Persistir o asociar carta favorita antes de guardar el perfil
-            playerProfile.setCurrentFavouriteCard(playerCardService.persistFavouriteCardIfNeeded(playerProfile, playerProfile.getCurrentFavouriteCard()));
+            // Guardar perfil primero sin la carta favorita
             savedProfile = playerProfileRepository.save(playerProfile);
+            // Persistir la carta favorita asociada al perfil guardado
+            if (favFromApi != null) {
+                PlayerCard savedFav = playerCardService.persistFavouriteCardIfNeeded(savedProfile, favFromApi);
+                savedProfile.setCurrentFavouriteCard(savedFav);
+                savedProfile = playerProfileRepository.save(savedProfile);
+            }
             statsChanged = true; // nuevo perfil -> snapshot
         }
 
@@ -312,7 +377,10 @@ public class PlayerProfileService {
         profile.setClan(clanService.resolveClanFromNode(json.get("clan")));
         profile.setArena(arenaService.resolveArenaFromNode(json.get("arena")));
 
-        profile.setLeagueStatistics(readJsonText(json, "leagueStatistics"));
+        profile.setLeagueStatistics(leagueStadisticService.resolveLeagueStadisticsFromNode(json.get("leagueStatistics")));
+
+
+        //profile.setLeagueStatistics(readJsonText(json, "leagueStatistics"));
         profile.setBadges(readJsonText(json, "badges"));
         profile.setAchievements(readJsonText(json, "achievements"));
 

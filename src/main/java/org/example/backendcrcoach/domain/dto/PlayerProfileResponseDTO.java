@@ -2,10 +2,7 @@ package org.example.backendcrcoach.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.backendcrcoach.domain.entities.Arena;
-import org.example.backendcrcoach.domain.entities.Clan;
-import org.example.backendcrcoach.domain.entities.Deck;
-import org.example.backendcrcoach.domain.entities.PlayerCard;
+import org.example.backendcrcoach.domain.entities.*;
 
 import java.util.List;
 
@@ -40,7 +37,7 @@ public class PlayerProfileResponseDTO {
     private Clan clan;
     private Arena arena;
     // Linked entity summaries
-    private String leagueStatistics;
+    private LeagueStadistic leagueStatistics;
     private String badges;
     private String achievements;
     private List<PlayerCard> playerCards;

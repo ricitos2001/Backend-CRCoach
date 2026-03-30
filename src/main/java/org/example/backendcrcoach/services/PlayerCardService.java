@@ -158,15 +158,28 @@ public class PlayerCardService {
 
         Integer cid = card.getCardId();
         if (cid != null && profile != null) {
-            // Buscar entre las cartas ya guardadas para este perfil
-            List<PlayerCard> existing = playerCardRepository.findByPlayerProfileTag(profile.getTag());
-            for (PlayerCard pc : existing) {
-                if (cid.equals(pc.getCardId())) return pc;
+            // Si el perfil aún no tiene id (no persistido), evitar ejecutar la consulta que puede provocar
+            // un flush y errores por referencias transientes. En ese caso buscar en la colección en memoria.
+            if (profile.getId() == null) {
+                if (profile.getPlayerCards() != null) {
+                    for (PlayerCard pc : profile.getPlayerCards()) {
+                        if (cid.equals(pc.getCardId())) return pc;
+                    }
+                }
+                // No podemos realizar una consulta segura sin persistir el perfil, devolvemos la carta transiente
+                // (el llamador debe persistir el perfil y/o la carta en el orden correcto).
+                card.setPlayerProfile(profile);
+                return card;
+            } else {
+                // Perfil ya persistido: buscar en BD para reutilizar cartas existentes
+                List<PlayerCard> existing = playerCardRepository.findByPlayerProfileTag(profile.getTag());
+                for (PlayerCard pc : existing) {
+                    if (cid.equals(pc.getCardId())) return pc;
+                }
             }
         }
 
-        // Asociar al perfil si está disponible (si el perfil no está guardado aún, la columna player_profile_id
-        // puede quedar a NULL; más adelante se re-asociará si es necesario).
+        // Asociar al perfil si está disponible
         if (profile != null) card.setPlayerProfile(profile);
         return playerCardRepository.save(card);
     }

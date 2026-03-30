@@ -4,11 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.backendcrcoach.domain.entities.Arena;
-import org.example.backendcrcoach.domain.entities.Clan;
-import org.example.backendcrcoach.domain.entities.Deck;
-import org.example.backendcrcoach.domain.entities.PlayerCard;
-import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
+import org.example.backendcrcoach.domain.entities.*;
 import java.util.List;
 
 @Getter
@@ -42,7 +38,7 @@ public class PlayerProfileRequestDTO {
 
     private Clan clan;
     private Arena arena;
-    private String leagueStatistics;
+    private LeagueStadistic leagueStatistics;
     private String badges;
     private String achievements;
     private List<PlayerCard> playerCards;

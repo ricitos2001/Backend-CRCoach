@@ -18,8 +18,8 @@ public class WebClientHelper {
     private final int maxRetries;
     private final Duration blockTimeout;
 
-    public WebClientHelper(@Value("${webclient.max-retries:3}") int maxRetries,
-                           @Value("${webclient.block-timeout-seconds:30}") int blockTimeoutSeconds) {
+    public WebClientHelper(@Value("${webclient.max-retries:10}") int maxRetries,
+                           @Value("${webclient.block-timeout-seconds:10000}") int blockTimeoutSeconds) {
         this.maxRetries = maxRetries;
         this.blockTimeout = Duration.ofSeconds(blockTimeoutSeconds);
     }
@@ -30,14 +30,38 @@ public class WebClientHelper {
                     .uri(uri, uriVars)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .retryWhen(Retry.backoff(maxRetries, Duration.ofSeconds(1)).filter(this::isRetryable))
-                    .block(blockTimeout);
-        } catch (RuntimeException e) {
-            if (isReadTimeout(e)) {
-                log.warn("Read timeout contacting {} ({}): {}", uri, java.util.Arrays.toString(uriVars), e.getMessage());
-                throw new IllegalStateException("Timeout contacting remote API (read timeout)", e);
+                    // Apply Reactor-level timeout per attempt to avoid Netty-level ReadTimeoutHandler
+                    .timeout(blockTimeout)
+                    .retryWhen(Retry.backoff(maxRetries, Duration.ofSeconds(1))
+                            .jitter(0.5)
+                            .filter(this::isRetryable))
+                    // Map read-timeout related errors to a clean IllegalStateException without keeping
+                    // the original Netty exception as cause (avoids io.netty stacktrace in logs).
+                    .onErrorMap(throwable -> {
+                        if (isReadTimeout(throwable)) {
+                            return new IllegalStateException("Timeout contacting remote API (read timeout)");
+                        }
+                        // preserve other exceptions
+                        return throwable instanceof RuntimeException ? (RuntimeException) throwable : new RuntimeException(throwable);
+                    })
+                    .block();
+        } catch (Throwable t) {
+            // Log the full cause chain for easier debugging
+            StringBuilder causes = new StringBuilder();
+            Throwable curr = t;
+            while (curr != null) {
+                causes.append(curr.getClass().getName()).append(": ").append(curr.getMessage()).append(" <- ");
+                curr = curr.getCause();
             }
-            throw e;
+            log.warn("Error contacting {} ({}). Cause chain: {}", uri, java.util.Arrays.toString(uriVars), causes.toString());
+
+            if (isReadTimeout(t)) {
+                // Throw a clean exception (without including Netty internals as cause)
+                throw new IllegalStateException("Timeout contacting remote API (read timeout)");
+            }
+
+            if (t instanceof RuntimeException) throw (RuntimeException) t;
+            throw new RuntimeException(t);
         }
     }
 

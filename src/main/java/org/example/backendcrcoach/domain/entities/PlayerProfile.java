@@ -5,6 +5,7 @@ import lombok.*;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import org.example.backendcrcoach.domain.entities.LeagueStadistic;
 
 @Entity
 @Getter
@@ -98,8 +99,9 @@ public class PlayerProfile {
     @JoinColumn(name = "arena_id")
     private Arena arena;
 
-    @Column(columnDefinition = "TEXT")
-    private String leagueStatistics;
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "league_stadistic_id")
+    private LeagueStadistic leagueStatistics;
 
     @Column(columnDefinition = "TEXT")
     private String badges;
