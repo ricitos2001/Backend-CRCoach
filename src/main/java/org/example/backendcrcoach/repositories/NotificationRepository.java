@@ -13,4 +13,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Boolean existsByTitle(String title);
 
     Page<Notification> findByUserEmail(String userEmail, Pageable pageable);
+
+    int countByUserEmailAndReadFalse(String userEmail);
 }

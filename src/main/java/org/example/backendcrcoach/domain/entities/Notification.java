@@ -22,5 +22,13 @@ public class Notification {
     private Date createdAt;
     @Column(name = "user_email", nullable = false)
     private String userEmail;
+    @Column(name = "read", nullable = false)
+    private Boolean read;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) createdAt = new Date();
+        if (read == null) read = false;
+    }
 }
 

@@ -16,6 +16,12 @@ public interface SnapshotRepository extends JpaRepository<Snapshot, Long> {
             LocalDateTime to, 
             Pageable pageable
     );
+
+    // Obtener el último snapshot por tag
+    java.util.Optional<Snapshot> findTopByPlayerProfileTagOrderByCapturedAtDesc(String playerTag);
+
+    // Obtener snapshots posteriores a una fecha para calcular delta en 24h
+    java.util.List<Snapshot> findByPlayerProfileTagAndCapturedAtAfterOrderByCapturedAtDesc(String playerTag, LocalDateTime after);
     @Modifying
     @Query("DELETE FROM Snapshot s WHERE s.capturedAt < :cutoffDate")
     long deleteByCreatedAtBefore(@Param("cutoffDate") LocalDateTime cutoffDate);
