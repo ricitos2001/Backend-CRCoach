@@ -61,7 +61,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/authenticate", "/api/v1/auth/register", "/api/v1/auth/logout", "/api/v1/auth/password/**").permitAll()
                         .requestMatchers("/api/v1/users/email-exists/**", "/api/v1/users/username-exists/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-ui/index.html").permitAll()
-                        .requestMatchers("/api/v1/battles", "/api/v1/cards", "/api/v1/goals", "/api/v1/player_cards", "/api/v1/player_profiles", "/api/v1/sessions", "/api/v1/snapshots", "/api/v1/users", "/api/v1/arenas", "/api/v1/clans", "/api/v1/decks", "/api/v1/player_entities").hasAnyRole("USER")
+                        .requestMatchers("/api/v1/battles", "/api/v1/cards", "/api/v1/goals", "/api/v1/player_cards", "/api/v1/player_profiles", "/api/v1/sessions", "/api/v1/snapshots", "/api/v1/users", "/api/v1/arenas", "/api/v1/clans", "/api/v1/decks", "/api/v1/player_entities", "/api/v1/seasons", "/api/v1/league-stadistics").hasAnyRole("USER")
                         .anyRequest().authenticated()
                 )
                 .httpBasic(Customizer.withDefaults())
