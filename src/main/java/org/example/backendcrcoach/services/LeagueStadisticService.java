@@ -25,11 +25,13 @@ public class LeagueStadisticService {
 
     private final LeagueStadisticRepository repository;
     private final SeasonRepository seasonRepository;
+    private final org.example.backendcrcoach.repositories.MetricRepository metricRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public LeagueStadisticService(LeagueStadisticRepository repository, SeasonRepository seasonRepository) {
+    public LeagueStadisticService(LeagueStadisticRepository repository, SeasonRepository seasonRepository, org.example.backendcrcoach.repositories.MetricRepository metricRepository) {
         this.repository = repository;
         this.seasonRepository = seasonRepository;
+        this.metricRepository = metricRepository;
     }
 
     /**
@@ -113,6 +115,10 @@ public class LeagueStadisticService {
     }
 
     public void delete(Long id) {
+        // Evitar borrar si hay métricas históricas que referencian esta estadística de liga.
+        if (metricRepository.existsByLeagueStatisticsId(id)) {
+            throw new IllegalArgumentException("Cannot delete LeagueStadistic id=" + id + " because it is referenced by Metric records");
+        }
         repository.deleteById(id);
     }
 

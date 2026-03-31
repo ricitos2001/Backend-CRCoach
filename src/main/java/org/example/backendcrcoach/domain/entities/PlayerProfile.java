@@ -100,7 +100,13 @@ public class PlayerProfile {
     @JoinColumn(name = "arena_id")
     private Arena arena;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    // No usar orphanRemoval ni cascade REMOVE aquí: las LeagueStadistic pueden ser
+    // referenciadas también por otras entidades (ej. Metric). Si eliminamos la
+    // entidad ligada al reasignar el campo del PlayerProfile Hibernate intentará
+    // borrarla y eso rompe la FK en la tabla metrics. Mantener persist/merge
+    // permite guardar nuevas temporadas cuando vienen anidadas sin eliminar
+    // registros referenciados por métricas históricas.
+    @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "league_stadistic_id")
     private LeagueStadistic leagueStatistics;
 
