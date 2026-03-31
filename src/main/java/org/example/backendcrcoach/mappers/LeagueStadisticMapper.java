@@ -8,7 +8,6 @@ import org.example.backendcrcoach.domain.entities.LeagueStadistic;
 public class LeagueStadisticMapper {
 
     public static LeagueStadistic toEntity(LeagueStadisticRequestDTO dto) {
-        if (dto == null) return null;
         LeagueStadistic ls = new LeagueStadistic();
         ls.setCurrentSeason(dto.getCurrentSeason());
         ls.setPreviousSeason(dto.getPreviousSeason());
@@ -17,7 +16,6 @@ public class LeagueStadisticMapper {
     }
 
     public static LeagueStadisticResponseDTO toDTO(LeagueStadistic entity) {
-        if (entity == null) return null;
         return new LeagueStadisticResponseDTO(
                 entity.getCurrentSeason(),
                 entity.getPreviousSeason(),

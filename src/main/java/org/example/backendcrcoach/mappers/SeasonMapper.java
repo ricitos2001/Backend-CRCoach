@@ -7,7 +7,6 @@ import org.example.backendcrcoach.domain.entities.Season;
 public class SeasonMapper {
 
     public static Season toEntity(SeasonRequestDTO dto) {
-        if (dto == null) return null;
         Season s = new Season();
         s.setSeasonId(dto.getSeasonId());
         s.setTrophies(dto.getTrophies() == null ? 0 : dto.getTrophies());
@@ -16,7 +15,6 @@ public class SeasonMapper {
     }
 
     public static SeasonResponseDTO toDTO(Season season) {
-        if (season == null) return null;
         return new SeasonResponseDTO(
                 season.getSeasonId(),
                 season.getTrophies(),
