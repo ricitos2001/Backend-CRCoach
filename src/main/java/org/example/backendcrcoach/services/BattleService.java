@@ -188,6 +188,7 @@ public class BattleService {
         entity.setTag(normalizedTag);
         entity.setName(readText(node, "name"));
         entity.setStartingTrophies(readInteger(node, "startingTrophies"));
+        entity.setTrophyChange(readInteger(node, "trophyChange"));
         entity.setCrowns(readInteger(node, "crowns"));
         entity.setKingTowerHitPoints(readInteger(node, "kingTowerHitPoints"));
         entity.setGlobalRank(readInteger(node, "globalRank"));

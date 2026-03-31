@@ -11,6 +11,7 @@ public class PlayerEntityMapper {
         entity.setTag(dto.getTag());
         entity.setName(dto.getName());
         entity.setStartingTrophies(dto.getStartingTrophies());
+        entity.setTrophyChange(dto.getTrophyChange());
         entity.setCrowns(dto.getCrowns());
         entity.setKingTowerHitPoints(dto.getKingTowerHitPoints());
         entity.setPrincessTowersHitPoints(dto.getPrincessTowersHitPoints());
@@ -30,6 +31,7 @@ public class PlayerEntityMapper {
                 entity.getTag(),
                 entity.getName(),
                 entity.getStartingTrophies(),
+                entity.getTrophyChange(),
                 entity.getCrowns(),
                 entity.getKingTowerHitPoints(),
                 entity.getPrincessTowersHitPoints(),

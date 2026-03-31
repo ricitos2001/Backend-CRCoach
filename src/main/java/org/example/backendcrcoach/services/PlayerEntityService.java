@@ -68,6 +68,7 @@ public class PlayerEntityService {
         Optional.ofNullable(dto.getTag()).ifPresent(entity::setTag);
         Optional.ofNullable(dto.getName()).ifPresent(entity::setName);
         Optional.ofNullable(dto.getStartingTrophies()).ifPresent(entity::setStartingTrophies);
+        Optional.ofNullable(dto.getTrophyChange()).ifPresent(entity::setTrophyChange);
         Optional.ofNullable(dto.getCrowns()).ifPresent(entity::setCrowns);
         Optional.ofNullable(dto.getKingTowerHitPoints()).ifPresent(entity::setKingTowerHitPoints);
         Optional.ofNullable(dto.getPrincessTowersHitPoints()).ifPresent(entity::setPrincessTowersHitPoints);

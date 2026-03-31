@@ -15,6 +15,7 @@ public class PlayerEntityRequestDTO {
     private String tag;
     private String name;
     private Integer startingTrophies;
+    private Integer trophyChange;
     private Integer crowns;
     private Integer kingTowerHitPoints;
     private List<Integer> princessTowersHitPoints;

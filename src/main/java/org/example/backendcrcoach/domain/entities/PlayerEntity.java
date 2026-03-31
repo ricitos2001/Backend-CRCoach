@@ -28,6 +28,9 @@ public class PlayerEntity {
     private Integer startingTrophies;
 
     @Column
+    private Integer trophyChange;
+
+    @Column
     private Integer crowns;
 
     @Column
