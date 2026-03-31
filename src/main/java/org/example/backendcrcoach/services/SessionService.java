@@ -11,7 +11,6 @@ import org.example.backendcrcoach.web.exceptions.DuplicatedSessionException;
 import org.example.backendcrcoach.web.exceptions.SessionNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -37,8 +36,7 @@ public class SessionService {
     }
 
     public Page<SessionResponseDTO> list(Pageable pageable) {
-        Page<SessionResponseDTO> groups = sessionRepository.findAll(pageable).map(SessionMapper::toDTO);
-        return groups;
+        return sessionRepository.findAll(pageable).map(SessionMapper::toDTO);
     }
 
     public SessionResponseDTO showByTitle(String title) {

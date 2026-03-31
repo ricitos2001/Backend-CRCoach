@@ -10,7 +10,6 @@ import org.example.backendcrcoach.web.exceptions.DuplicatedGoalException;
 import org.example.backendcrcoach.web.exceptions.GoalNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -36,8 +35,7 @@ public class GoalService {
     }
 
     public Page<GoalResponseDTO> list(Pageable pageable) {
-        Page<GoalResponseDTO> groups = goalRepository.findAll(pageable).map(GoalMapper::toDTO);
-        return groups;
+        return goalRepository.findAll(pageable).map(GoalMapper::toDTO);
     }
 
     public GoalResponseDTO showByTitle(String title) {

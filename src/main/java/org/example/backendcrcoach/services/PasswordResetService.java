@@ -103,8 +103,7 @@ public class PasswordResetService {
         if (optionalToken.isEmpty()) return false;
         PasswordResetToken token = optionalToken.get();
         if (token.isUsed()) return false;
-        if (token.getExpiresAt().isBefore(Instant.now())) return false;
-        return true;
+        return !token.getExpiresAt().isBefore(Instant.now());
     }
 
     public void resetPassword(String rawToken, String newPassword) {
@@ -128,17 +127,12 @@ public class PasswordResetService {
         // tokenRepository.deleteByUserAndUsedFalse(user); // no implementado
     }
 
-    public void purgeExpiredTokens() {
-        tokenRepository.deleteByExpiresAtBefore(Instant.now());
-    }
-
     private String generateToken() {
         // UUID + random bytes -> base64url
         byte[] random = new byte[24];
         secureRandom.nextBytes(random);
         String uuid = UUID.randomUUID().toString();
-        String combined = uuid + Base64.getUrlEncoder().withoutPadding().encodeToString(random);
-        return combined;
+        return uuid + Base64.getUrlEncoder().withoutPadding().encodeToString(random);
     }
 
     private String hash(String raw) {
@@ -151,8 +145,5 @@ public class PasswordResetService {
         }
     }
 
-    private String getFrontendResetUrl() {
-        return frontendBaseUrl + "/reset-password";
-    }
 }
 

@@ -14,7 +14,6 @@ import org.example.backendcrcoach.web.exceptions.UserNotFoundException;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,16 +22,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Arrays;
+// ...existing code...
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 
 @Service
 @Transactional
 public class UserService {
     public static final String USUARIO_NO_ENCONTRADO_CON = "Usuario no encontrado con ";
+    private static final long MAX_AVATAR_SIZE = 5L * 1024L * 1024L; // 5MB
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileService fileService;
@@ -55,8 +57,7 @@ public class UserService {
     }
 
     public Page<UserResponseDTO> list(Pageable pageable) {
-        Page<UserResponseDTO> users = userRepository.findAll(pageable).map(UserMapper::toDTO);
-        return users;
+        return userRepository.findAll(pageable).map(UserMapper::toDTO);
     }
 
     public UserResponseDTO showById(Long id) {
@@ -105,22 +106,8 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Enviar correo de bienvenida/registro
-        try {
-            String subject = "Bienvenido a CRCoach";
-            Map<String, Object> model = new HashMap<>();
-            model.put("user", savedUser);
-            emailService.sendTemplateEmail(savedUser.getEmail(), subject, "saludo.html", model);
-        } catch (Exception e) {
-            // fallback simple
-            try {
-                String subject = "Bienvenido a CRCoach";
-                String text = "Gracias por registrarte en CRCoach.";
-                emailService.sendSimpleEmail(savedUser.getEmail(), subject, text);
-            } catch (Exception ex) {
-                throw new RuntimeException("Error al enviar correo de bienvenida a " + savedUser.getEmail(), ex);
-            }
-        }
+        // Enviar correo de bienvenida/registro (se encapsula la lógica en un método)
+        sendWelcomeEmail(savedUser);
 
         return UserMapper.toDTO(savedUser);
     }
@@ -183,18 +170,7 @@ public class UserService {
             User savedUser = userRepository.save(user);
 
             // enviar correo de registro
-            try {
-                String subject = "Bienvenido a CRCoach";
-                Map<String, Object> model = new HashMap<>();
-                model.put("user", savedUser);
-                emailService.sendTemplateEmail(savedUser.getEmail(), subject, "saludo.html", model);
-            } catch (Exception e) {
-                try {
-                    emailService.sendSimpleEmail(savedUser.getEmail(), "Bienvenido a CRCoach", "Gracias por registrarte en CRCoach.");
-                } catch (Exception ex) {
-                    throw new RuntimeException("Error al enviar correo de bienvenida a " + savedUser.getEmail(), ex);
-                }
-            }
+            sendWelcomeEmail(savedUser);
             return savedUser;
         }
     }
@@ -230,16 +206,32 @@ public class UserService {
     }
 
     private void validarTamanoArchivo(MultipartFile avatar) {
-        long maxSizeInBytes = 1024 * 1024 * 5L; // 5MB
-        if (avatar.getSize() > maxSizeInBytes) {
+        if (avatar.getSize() > MAX_AVATAR_SIZE) {
             throw new IllegalArgumentException("Tamaño de archivo excede el límite de 5MB");
         }
     }
 
     private void validarTipoDeArchivo(MultipartFile avatar) {
         String contentType = avatar.getContentType();
-        if (!Arrays.asList("image/png", "image/jpeg", "image/gif", "image/webp").contains(contentType)) {
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new IllegalArgumentException("Tipo de archivo debe ser: (jpeg, png, gif, webp)");
+        }
+    }
+    /**
+     * Intenta enviar el correo de bienvenida usando plantilla y si falla hace un fallback a texto simple.
+     */
+    private void sendWelcomeEmail(User savedUser) {
+        try {
+            String subject = "Bienvenido a CRCoach";
+            Map<String, Object> model = new HashMap<>();
+            model.put("user", savedUser);
+            emailService.sendTemplateEmail(savedUser.getEmail(), subject, "saludo.html", model);
+        } catch (Exception e) {
+            try {
+                emailService.sendSimpleEmail(savedUser.getEmail(), "Bienvenido a CRCoach", "Gracias por registrarte en CRCoach.");
+            } catch (Exception ex) {
+                throw new RuntimeException("Error al enviar correo de bienvenida a " + savedUser.getEmail(), ex);
+            }
         }
     }
 
@@ -249,7 +241,6 @@ public class UserService {
 
     /**
      * Vincula un tag de Clash Royale al perfil del usuario autenticado.
-     * 
      * Esta función:
      * 1. Obtiene el usuario autenticado actual
      * 2. Verifica que el tag no esté ya vinculado a otra cuenta

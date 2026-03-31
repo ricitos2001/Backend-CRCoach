@@ -17,12 +17,9 @@ import org.example.backendcrcoach.config.WebClientHelper;
 import org.springframework.web.bind.annotation.RequestBody;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-// ...existing code...
 import org.example.backendcrcoach.domain.entities.PlayerCard;
-import org.example.backendcrcoach.domain.entities.Deck;
 import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
 import org.example.backendcrcoach.mappers.DeckMapper;
-import org.example.backendcrcoach.repositories.DeckRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +40,6 @@ public class PlayerProfileService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArenaService arenaService;
     private final ClanService clanService;
-    private final DeckRepository deckRepository;
     private final DeckService deckService;
     private final WebClientHelper webClientHelper;
     private final LeagueStadisticService leagueStadisticService;
@@ -58,7 +54,7 @@ public class PlayerProfileService {
             PlayerCardService playerCardService,
             ArenaService arenaService,
             ClanService clanService,
-            DeckRepository deckRepository, DeckService deckService, WebClientHelper webClientHelper, LeagueStadisticService leagueStadisticService) {
+            DeckService deckService, WebClientHelper webClientHelper, LeagueStadisticService leagueStadisticService) {
         this.playerProfileRepository = playerProfileRepository;
         this.snapshotService = snapshotService;
         this.webClient = builder
@@ -69,7 +65,6 @@ public class PlayerProfileService {
         this.playerCardService = playerCardService;
         this.arenaService = arenaService;
         this.clanService = clanService;
-        this.deckRepository = deckRepository;
         this.deckService = deckService;
         this.webClientHelper = webClientHelper;
         this.leagueStadisticService = leagueStadisticService;
@@ -202,7 +197,7 @@ public class PlayerProfileService {
 
         PlayerProfile savedProfile;
         PlayerProfile existing = playerProfileRepository.findByTag(playerProfile.getTag()).orElse(null);
-        boolean statsChanged = false;
+        boolean statsChanged;
         if (existing != null) {
             // Determinar si las estadísticas relevantes cambiaron
             statsChanged = hasSnapshotRelevantChanges(existing, playerProfile);
@@ -399,7 +394,7 @@ public class PlayerProfileService {
         if (cardsNode != null && cardsNode.isArray()) {
             List<PlayerCard> cardList = new ArrayList<>();
             for (JsonNode c : cardsNode) {
-                PlayerCard card = playerCardService.parseCards(c);
+                PlayerCard card = playerCardService.parseCard(c);
                 card.setPlayerProfile(profile);
                 card.setSupportCard(false);
 
@@ -414,7 +409,7 @@ public class PlayerProfileService {
         if (supportNode != null && supportNode.isArray()) {
             List<PlayerCard> supportList = new ArrayList<>();
             for (JsonNode s : supportNode) {
-                PlayerCard card = playerCardService.parseCards(s);
+                PlayerCard card = playerCardService.parseCard(s);
                 card.setSupportCard(true);
                 supportList.add(card);
             }
@@ -429,7 +424,7 @@ public class PlayerProfileService {
             if (deckNode.isArray()) {
                 List<PlayerCard> deckCards = new ArrayList<>();
                 for (JsonNode c : deckNode) {
-                    PlayerCard card = playerCardService.parseCards(c);
+                    PlayerCard card = playerCardService.parseCard(c);
                     deckCards.add(card);
                 }
                 DeckRequestDTO deckDto = new DeckRequestDTO();
@@ -451,7 +446,7 @@ public class PlayerProfileService {
             if (supportDeckNode.isArray()) {
                 List<PlayerCard> supportCards = new ArrayList<>();
                 for (JsonNode c : supportDeckNode) {
-                    PlayerCard card = playerCardService.parseCards(c);
+                    PlayerCard card = playerCardService.parseCard(c);
                     supportCards.add(card);
                 }
                 DeckRequestDTO supportDto = new DeckRequestDTO();
@@ -469,7 +464,7 @@ public class PlayerProfileService {
 
         JsonNode favouriteCard = json.get("currentFavouriteCard");
         if (favouriteCard != null && !favouriteCard.isNull()) {
-            PlayerCard card = playerCardService.parseCards(favouriteCard);
+            PlayerCard card = playerCardService.parseCard(favouriteCard);
             profile.setCurrentFavouriteCard(card);
         } else {
             profile.setCurrentFavouriteCard(null);

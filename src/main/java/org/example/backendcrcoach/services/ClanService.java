@@ -70,10 +70,5 @@ public class ClanService {
         JsonNode node = json.get(field);
         return node == null || node.isNull() ? null : objectMapper.convertValue(node, String.class);
     }
-
-    private Integer readInteger(JsonNode json, String field) {
-        JsonNode node = json.get(field);
-        return node == null || node.isNull() ? null : node.asInt();
-    }
 }
 

@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class PlayerCardService {
+    private static final String TAG_PREFIX = "#";
 
     private final PlayerCardRepository playerCardRepository;
     private final PlayerProfileRepository playerProfileRepository;
@@ -53,7 +54,8 @@ public class PlayerCardService {
     }
 
     public List<PlayerCardResponseDTO> importCardsForPlayer(String playerTag) {
-        String response = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", "#" + playerTag);
+        String playerTagWithHash = TAG_PREFIX + playerTag;
+        String response = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTagWithHash);
         if (response == null || response.isBlank()) return List.of();
 
         JsonNode root;
@@ -67,31 +69,11 @@ public class PlayerCardService {
 
         // process regular cards
         JsonNode cardsNode = root.get("cards");
-        if (cardsNode != null && cardsNode.isArray()) {
-            for (JsonNode node : cardsNode) {
-                Integer cardId = node.has("id") && !node.get("id").isNull() ? node.get("id").asInt() : null;
-                if (cardId == null) continue;
-                if (playerCardRepository.existsByCardIdAndPlayerProfileTag(cardId, "#" + playerTag)) continue;
-                PlayerCard card = parseCards(node);
-                card.setSupportCard(false);
-                playerProfileRepository.findByTag("#" + playerTag).ifPresent(card::setPlayerProfile);
-                saved.add(playerCardRepository.save(card));
-            }
-        }
+        processCardsArray(cardsNode, playerTagWithHash, false, saved);
 
         // process supportCards (if any)
         JsonNode supportNode = root.get("supportCards");
-        if (supportNode != null && supportNode.isArray()) {
-            for (JsonNode node : supportNode) {
-                Integer cardId = node.has("id") && !node.get("id").isNull() ? node.get("id").asInt() : null;
-                if (cardId == null) continue;
-                if (playerCardRepository.existsByCardIdAndPlayerProfileTag(cardId, "#" + playerTag)) continue;
-                PlayerCard card = parseCards(node);
-                card.setSupportCard(true);
-                playerProfileRepository.findByTag("#" + playerTag).ifPresent(card::setPlayerProfile);
-                saved.add(playerCardRepository.save(card));
-            }
-        }
+        processCardsArray(supportNode, playerTagWithHash, true, saved);
 
         return saved.stream().map(PlayerCardMapper::toDTO).collect(Collectors.toList());
     }
@@ -101,7 +83,7 @@ public class PlayerCardService {
      * Evita duplicados por cardId y asigna la relación bidireccional.
      */
 
-    public PlayerCard parseCards(JsonNode s) {
+    public PlayerCard parseCard(JsonNode s) {
         PlayerCard card = new PlayerCard();
         card.setCardId(s.has("id") && !s.get("id").isNull() ? s.get("id").asInt() : null);
         card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asString() : null);
@@ -114,12 +96,24 @@ public class PlayerCardService {
         JsonNode iconNode2 = s.get("iconUrls");
         if (iconNode2 != null && !iconNode2.isNull()) {
             IconUrl iconUrl2 = new IconUrl();
-
-            iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? iconNode2.get("medium").asString() : null);
-            iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? iconNode2.get("evolutionMedium").asText() : null);
+            iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? objectMapper.convertValue(iconNode2.get("medium"), String.class) : null);
+            iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? objectMapper.convertValue(iconNode2.get("evolutionMedium"), String.class) : null);
             card.setIconUrl(iconUrl2);
         }
         return card;
+    }
+
+    private void processCardsArray(JsonNode arrayNode, String playerTagWithHash, boolean supportCard, List<PlayerCard> saved) {
+        if (arrayNode == null || !arrayNode.isArray()) return;
+        for (JsonNode node : arrayNode) {
+            Integer cardId = node.has("id") && !node.get("id").isNull() ? node.get("id").asInt() : null;
+            if (cardId == null) continue;
+            if (playerCardRepository.existsByCardIdAndPlayerProfileTag(cardId, playerTagWithHash)) continue;
+            PlayerCard card = parseCard(node);
+            card.setSupportCard(supportCard);
+            playerProfileRepository.findByTag(playerTagWithHash).ifPresent(card::setPlayerProfile);
+            saved.add(playerCardRepository.save(card));
+        }
     }
     public void saveCardsFromProfile(PlayerProfile profile) {
         if (profile == null || profile.getPlayerCards() == null) return;

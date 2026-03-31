@@ -23,6 +23,7 @@ import java.util.Map;
 @Primary
 public class EmailServiceBrevoImpl implements EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailServiceBrevoImpl.class);
+    private static final String BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
     @Value("${brevo.api.key}")
     private String apiKey;
@@ -62,9 +63,13 @@ public class EmailServiceBrevoImpl implements EmailService {
         return enabled;
     }
 
+    private boolean isDisabled() {
+        return !enabled;
+    }
+
     @Override
     public void sendSimpleEmail(String to, String subject, String text) {
-        if (!enabled) {
+        if (isDisabled()) {
             logger.info("Skipping sendSimpleEmail to {} because Brevo is disabled. Subject: {}", to, subject);
             return;
         }
@@ -73,7 +78,7 @@ public class EmailServiceBrevoImpl implements EmailService {
 
     @Override
     public void sendHtmlEmail(String to, String subject, String html) {
-        if (!enabled) {
+        if (isDisabled()) {
             logger.info("Skipping sendHtmlEmail to {} because Brevo is disabled. Subject: {}", to, subject);
             return;
         }
@@ -82,7 +87,7 @@ public class EmailServiceBrevoImpl implements EmailService {
 
     @Override
     public void sendTemplateEmail(String to, String subject, String templateName, Map<String, Object> model) {
-        if (!enabled) {
+        if (isDisabled()) {
             logger.info("Skipping sendTemplateEmail to {} because Brevo is disabled. Subject: {} Template: {}", to, subject, templateName);
             return;
         }
@@ -96,7 +101,7 @@ public class EmailServiceBrevoImpl implements EmailService {
     }
 
     public void sendTestEmail(String to) {
-        if (!enabled) {
+        if (isDisabled()) {
             logger.info("Skipping sendTestEmail to {} because Brevo is disabled.", to);
             return;
         }
@@ -104,7 +109,7 @@ public class EmailServiceBrevoImpl implements EmailService {
     }
 
     private void sendViaBrevo(String to, String subject, String htmlContent, String textContent) {
-        String url = "https://api.brevo.com/v3/smtp/email";
+        String url = BREVO_URL;
 
         Map<String, Object> body = new HashMap<>();
         Map<String, String> sender = Map.of("name", senderName, "email", senderEmail);

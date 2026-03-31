@@ -21,13 +21,11 @@ public class NotificationService {
     }
 
     public Page<NotificationResponseDTO> findAll(Pageable pageable) {
-        Page<NotificationResponseDTO> notifications = repository.findAll(pageable).map(NotificationMapper::toDTO);
-        return notifications;
+        return repository.findAll(pageable).map(NotificationMapper::toDTO);
     }
 
     public Page<NotificationResponseDTO> findByUserEmail(String email, Pageable pageable) {
-        Page<NotificationResponseDTO> notifications = repository.findByUserEmail(email, pageable).map(NotificationMapper::toDTO);
-        return notifications;
+        return repository.findByUserEmail(email, pageable).map(NotificationMapper::toDTO);
     }
 
     public NotificationResponseDTO create(NotificationRequestDTO dto) {

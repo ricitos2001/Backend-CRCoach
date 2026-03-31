@@ -11,7 +11,6 @@ import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.example.backendcrcoach.config.WebClientHelper;
@@ -80,7 +79,7 @@ public class CardService {
         }
 
         // Support multiple response shapes: direct array or object containing items/cards
-        JsonNode arrayNode = null;
+        JsonNode arrayNode;
         if (root.isArray()) {
             arrayNode = root;
         } else if (root.has("items") && root.get("items").isArray()) {
@@ -88,58 +87,22 @@ public class CardService {
         } else if (root.has("cards") && root.get("cards").isArray()) {
             arrayNode = root.get("cards");
         } else {
-            log.warn("cards API returned unexpected JSON shape: {}", root.toString());
+            log.warn("cards API returned unexpected JSON shape: {}", root);
             return 0;
         }
 
         int imported = 0;
         for (JsonNode node : arrayNode) {
-            Integer cardId = readInteger(node, "id");
-            if (cardId == null) continue;
-            if (cardRepository.existsByCardId(cardId)) continue;
-
-            Card card = new Card();
-            card.setCardId(cardId);
-            card.setName(readText(node, "name"));
-            card.setMaxLevel(readInteger(node, "maxLevel"));
-            card.setMaxEvolutionLevel(readInteger(node, "maxEvolutionLevel"));
-            card.setRarity(readText(node, "rarity"));
-            card.setElixirCost(readInteger(node, "elixirCost"));
-
-            JsonNode iconNode = node.get("iconUrls");
-            if (iconNode != null && !iconNode.isNull()) {
-                IconUrl icon = new IconUrl();
-                icon.setMedium(readText(iconNode, "medium"));
-                icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
-                card.setIconUrl(icon);
-            }
-
+            Card card = createCardFromNode(node);
+            if (card == null) continue;
             cardRepository.save(card);
             imported++;
         }
 
         if (root.has("supportItems") && root.get("supportItems").isArray()) {
             for (JsonNode node : root.get("supportItems")) {
-                Integer cardId = readInteger(node, "id");
-                if (cardId == null) continue;
-                if (cardRepository.existsByCardId(cardId)) continue;
-
-                Card card = new Card();
-                card.setCardId(cardId);
-                card.setName(readText(node, "name"));
-                card.setMaxLevel(readInteger(node, "maxLevel"));
-                card.setMaxEvolutionLevel(readInteger(node, "maxEvolutionLevel"));
-                card.setRarity(readText(node, "rarity"));
-                card.setElixirCost(readInteger(node, "elixirCost"));
-
-                JsonNode iconNode = node.get("iconUrls");
-                if (iconNode != null && !iconNode.isNull()) {
-                    IconUrl icon = new IconUrl();
-                    icon.setMedium(readText(iconNode, "medium"));
-                    icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
-                    card.setIconUrl(icon);
-                }
-
+                Card card = createCardFromNode(node);
+                if (card == null) continue;
                 cardRepository.save(card);
                 imported++;
             }
@@ -157,6 +120,30 @@ public class CardService {
     private Integer readInteger(JsonNode node, String field) {
         JsonNode v = node.get(field);
         return v == null || v.isNull() ? null : v.asInt();
+    }
+
+    private Card createCardFromNode(JsonNode node) {
+        Integer cardId = readInteger(node, "id");
+        if (cardId == null) return null;
+        if (cardRepository.existsByCardId(cardId)) return null;
+
+        Card card = new Card();
+        card.setCardId(cardId);
+        card.setName(readText(node, "name"));
+        card.setMaxLevel(readInteger(node, "maxLevel"));
+        card.setMaxEvolutionLevel(readInteger(node, "maxEvolutionLevel"));
+        card.setRarity(readText(node, "rarity"));
+        card.setElixirCost(readInteger(node, "elixirCost"));
+
+        JsonNode iconNode = node.get("iconUrls");
+        if (iconNode != null && !iconNode.isNull()) {
+            IconUrl icon = new IconUrl();
+            icon.setMedium(readText(iconNode, "medium"));
+            icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
+            card.setIconUrl(icon);
+        }
+
+        return card;
     }
 }
 

@@ -4,10 +4,8 @@ import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
 import org.example.backendcrcoach.domain.entities.Battle;
-import org.example.backendcrcoach.domain.entities.Clan;
 import org.example.backendcrcoach.domain.entities.Deck;
 import org.example.backendcrcoach.domain.entities.IconUrl;
-import org.example.backendcrcoach.domain.entities.Arena;
 import org.example.backendcrcoach.domain.entities.PlayerCard;
 import org.example.backendcrcoach.domain.entities.PlayerEntity;
 import org.example.backendcrcoach.mappers.BattleMapper;
@@ -26,6 +24,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class BattleService {
+    private static final String TAG_PREFIX = "#";
 
     private final BattleRepository battleRepository;
     private final PlayerProfileRepository playerProfileRepository;
@@ -40,11 +39,9 @@ public class BattleService {
             BattleRepository battleRepository,
             PlayerProfileRepository playerProfileRepository,
             PlayerEntityRepository playerEntityRepository,
-            ClanRepository clanRepository,
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
-            org.example.backendcrcoach.repositories.ArenaRepository arenaRepository,
             ArenaService arenaService, ClanService clanService,
             org.example.backendcrcoach.config.WebClientHelper webClientHelper) {
         this.battleRepository = battleRepository;
@@ -124,7 +121,7 @@ public class BattleService {
      * Devuelve el número de batallas importadas.
      */
     public int importBattlesForPlayer(String playerTag) {
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", "#" + playerTag);
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", formatTag(playerTag));
 
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);
@@ -149,7 +146,7 @@ public class BattleService {
             if (battleRepository.existsByBattleTime(battle.getBattleTime())) continue;
 
             // Enlazar al PlayerProfile por tag si existe
-            playerProfileRepository.findByTag("#" + playerTag).ifPresent(battle::setPlayerProfile);
+            playerProfileRepository.findByTag(formatTag(playerTag)).ifPresent(battle::setPlayerProfile);
 
             battleRepository.save(battle);
             imported++;
@@ -241,7 +238,12 @@ public class BattleService {
 
     private String normalizeTag(String rawTag) {
         if (rawTag == null || rawTag.isBlank()) return rawTag;
-        return rawTag.startsWith("#") ? rawTag : "#" + rawTag;
+        return rawTag.startsWith(TAG_PREFIX) ? rawTag : TAG_PREFIX + rawTag;
+    }
+
+    private String formatTag(String tagWithoutHash) {
+        if (tagWithoutHash == null) return null;
+        return tagWithoutHash.startsWith(TAG_PREFIX) ? tagWithoutHash : TAG_PREFIX + tagWithoutHash;
     }
 
     private String readText(JsonNode json, String field) {

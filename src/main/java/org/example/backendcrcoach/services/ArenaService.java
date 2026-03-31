@@ -54,7 +54,7 @@ public class ArenaService {
 
     public Arena resolveArenaFromNode(JsonNode arenaNode) {
         if (arenaNode == null || arenaNode.isNull()) return null;
-        String rawName = readText(arenaNode, "name");
+        String rawName = readText(arenaNode);
         if (rawName == null || rawName.isBlank()) return null;
 
         Arena arena = arenaRepository.findByRawName(rawName)
@@ -66,8 +66,8 @@ public class ArenaService {
         return arenaRepository.save(arena);
     }
 
-    private String readText(JsonNode json, String field) {
-        JsonNode node = json.get(field);
+    private String readText(JsonNode json) {
+        JsonNode node = json.get("name");
         return node == null || node.isNull() ? null : objectMapper.convertValue(node, String.class);
     }
 }
