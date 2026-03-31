@@ -1,5 +1,5 @@
 package org.example.backendcrcoach.domain.entities;
-
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -48,10 +48,10 @@ public class PlayerCard {
 
     @ManyToOne
     @JoinColumn(name = "player_profile_id", nullable = true)
+    @JsonBackReference
     private PlayerProfile playerProfile;
 
     @Column(name = "support_card")
     private Boolean supportCard;
 
 }
-

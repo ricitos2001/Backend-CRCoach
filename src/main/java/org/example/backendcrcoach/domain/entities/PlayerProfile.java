@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 import org.example.backendcrcoach.domain.entities.LeagueStadistic;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Getter
@@ -110,6 +111,7 @@ public class PlayerProfile {
     private String achievements;
 
     @OneToMany(mappedBy = "playerProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<PlayerCard> playerCards;
 
     // supportCards is a derived view over playerCards where supportCard == true
@@ -154,4 +156,3 @@ public class PlayerProfile {
 
 
 }
-

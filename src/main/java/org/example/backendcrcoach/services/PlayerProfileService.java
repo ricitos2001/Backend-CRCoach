@@ -27,7 +27,9 @@ import org.example.backendcrcoach.repositories.DeckRepository;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Transactional
@@ -183,13 +185,20 @@ public class PlayerProfileService {
         }
 
         PlayerProfile playerProfile = mapApiResponseToEntity(playerJson);
-        // Primero importar batallas (devuelve cuantas batallas nuevas se añadieron)
-        int importedBattles = 0;
-        try {
-            importedBattles = battleService.importBattlesForPlayer(playerTag);
-        } catch (Exception e) {
-            // no interrumpir el flujo por fallos en batallas
-        }
+
+        // Importar batallas en segundo plano (no bloquear la petición HTTP del cliente)
+        CompletableFuture.runAsync(() -> {
+            try {
+                int importedBattles = battleService.importBattlesForPlayer(playerTag);
+                if (importedBattles > 0) {
+                    // Si se importaron batallas nuevas, crear un snapshot basado en el perfil
+                    // reconsultado desde la BBDD para asegurarnos de tener una entidad gestionada.
+                    playerProfileRepository.findByTag("#" + playerTag).ifPresent(snapshotService::saveSnapshot);
+                }
+            } catch (Exception e) {
+                // no interrumpir el flujo por fallos en batallas
+            }
+        });
 
         PlayerProfile savedProfile;
         PlayerProfile existing = playerProfileRepository.findByTag(playerProfile.getTag()).orElse(null);
@@ -263,7 +272,7 @@ public class PlayerProfileService {
                     existing.setPlayerCards(new java.util.ArrayList<>());
                 }
                 for (PlayerCard sc : playerProfile.getSupportCards()) {
-                    boolean present = existing.getPlayerCards().stream().anyMatch(c -> java.util.Objects.equals(c.getCardId(), sc.getCardId()) && Boolean.TRUE.equals(c.getSupportCard()));
+                    boolean present = existing.getPlayerCards().stream().anyMatch(c -> Objects.equals(c.getCardId(), sc.getCardId()) && Boolean.TRUE.equals(c.getSupportCard()));
                     if (!present) {
                         sc.setPlayerProfile(existing);
                         sc.setSupportCard(true);
@@ -308,8 +317,9 @@ public class PlayerProfileService {
             statsChanged = true; // nuevo perfil -> snapshot
         }
 
-        // Crear snapshot si las estadísticas cambiaron o si se importaron nuevas batallas
-        if (statsChanged || importedBattles > 0) {
+        // Crear snapshot si las estadísticas cambiaron.
+        // La importación asíncrona de batallas se encarga de crear snapshot si fue necesario.
+        if (statsChanged) {
             snapshotService.saveSnapshot(savedProfile);
         }
 
