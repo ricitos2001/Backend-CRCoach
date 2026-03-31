@@ -1,6 +1,7 @@
 package org.example.backendcrcoach.services;
 
 import jakarta.transaction.Transactional;
+import org.example.backendcrcoach.config.WebClientHelper;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
 import org.example.backendcrcoach.domain.entities.Battle;
@@ -33,7 +34,8 @@ public class BattleService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArenaService arenaService;
     private final ClanService clanService;
-    private final org.example.backendcrcoach.config.WebClientHelper webClientHelper;
+    private final WebClientHelper webClientHelper;
+    private final DeckService deckService;
 
     public BattleService(
             BattleRepository battleRepository,
@@ -43,7 +45,8 @@ public class BattleService {
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
             ArenaService arenaService, ClanService clanService,
-            org.example.backendcrcoach.config.WebClientHelper webClientHelper) {
+            WebClientHelper webClientHelper,
+            DeckService deckService) {
         this.battleRepository = battleRepository;
         this.playerProfileRepository = playerProfileRepository;
         this.playerEntityRepository = playerEntityRepository;
@@ -54,6 +57,7 @@ public class BattleService {
         this.arenaService = arenaService;
         this.clanService = clanService;
         this.webClientHelper = webClientHelper;
+        this.deckService = deckService;
     }
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
@@ -199,7 +203,10 @@ public class BattleService {
             entity.setPrincessTowersHitPoints(hp);
         }
 
-        entity.setPlayerDeck(resolveDeckFromArray(node.get("cards")));
+        Deck deck = resolveDeckFromArray(node.get("cards"));
+        // Persistir el deck si es necesario para que tenga id y arquetipo calculado
+        Deck persisted = deckService.persistDeckIfNeeded(deck);
+        entity.setPlayerDeck(persisted);
 
         return playerEntityRepository.save(entity);
     }
@@ -233,6 +240,7 @@ public class BattleService {
         }
 
         deck.setPlayerCards(cards);
+        // El arquetipo se calcula en DeckService al persistir el deck
         return deck;
     }
 

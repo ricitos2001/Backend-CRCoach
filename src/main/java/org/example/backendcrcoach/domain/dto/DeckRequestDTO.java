@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.backendcrcoach.analytics.Archetype;
 import org.example.backendcrcoach.domain.entities.PlayerCard;
 
 import java.util.List;
@@ -13,8 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeckRequestDTO {
-    private Long apiId;
-    private String archetype;
+    private Archetype archetype;
     private List<PlayerCard> playerCards;
 }
 

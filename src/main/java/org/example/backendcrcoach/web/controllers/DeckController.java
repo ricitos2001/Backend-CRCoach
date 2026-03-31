@@ -31,12 +31,6 @@ public class DeckController {
         return deckService.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Obtener mazo por API ID", description = "Recupera un mazo por su ID externo (API).")
-    @GetMapping("/api/{apiId}")
-    public ResponseEntity<DeckResponseDTO> getByApiId(@PathVariable Long apiId) {
-        return deckService.findByApiId(apiId).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
     @Operation(summary = "Crear mazo", description = "Crea un nuevo mazo con los datos proporcionados.")
     @PostMapping
     public ResponseEntity<DeckResponseDTO> create(@RequestBody DeckRequestDTO dto) {

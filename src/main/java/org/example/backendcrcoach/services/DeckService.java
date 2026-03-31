@@ -1,6 +1,8 @@
 package org.example.backendcrcoach.services;
 
 import jakarta.transaction.Transactional;
+import org.example.backendcrcoach.analytics.Archetype;
+import org.example.backendcrcoach.analytics.ArchetypeClassifier;
 import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
 import org.example.backendcrcoach.domain.dto.DeckResponseDTO;
 import org.example.backendcrcoach.domain.entities.Deck;
@@ -17,15 +19,15 @@ import java.util.stream.Collectors;
 public class DeckService {
 
     private final DeckRepository deckRepository;
+    private final ArchetypeClassifier archetypeClassifier;
 
-    public DeckService(DeckRepository deckRepository) {
+    public DeckService(DeckRepository deckRepository, ArchetypeClassifier archetypeClassifier) {
         this.deckRepository = deckRepository;
+        this.archetypeClassifier = archetypeClassifier;
     }
 
     public DeckResponseDTO create(DeckRequestDTO dto) {
-        if (dto.getApiId() != null && deckRepository.existsByApiId(dto.getApiId())) {
-            throw new IllegalArgumentException("Ya existe un Deck con apiId: " + dto.getApiId());
-        }
+        // No comprobación por apiId (campo external eliminado). Simplemente crear.
         Deck deck = DeckMapper.toEntity(dto);
         Deck saved = deckRepository.save(deck);
         return DeckMapper.toDTO(saved);
@@ -39,17 +41,14 @@ public class DeckService {
         return deckRepository.findById(id).map(DeckMapper::toDTO);
     }
 
-    public Optional<DeckResponseDTO> findByApiId(Long apiId) {
-        return deckRepository.findByApiId(apiId).map(DeckMapper::toDTO);
-    }
+    // Búsqueda por apiId eliminada (campo external eliminado)
 
     public Optional<DeckResponseDTO> update(Long id, DeckRequestDTO dto) {
         return deckRepository.findById(id).map(existing -> {
-            if (dto.getApiId() != null && !dto.getApiId().equals(existing.getApiId()) && deckRepository.existsByApiId(dto.getApiId())) {
-                throw new IllegalArgumentException("Ya existe un Deck con apiId: " + dto.getApiId());
+            if (deckRepository.existsById(id)) {
+                throw new IllegalArgumentException("Ya existe un Deck con id: " + id);
             }
 
-            Optional.ofNullable(dto.getApiId()).ifPresent(existing::setApiId);
             Optional.ofNullable(dto.getArchetype()).ifPresent(existing::setArchetype);
             if (dto.getPlayerCards() != null) {
                 existing.setPlayerCards(dto.getPlayerCards());
@@ -66,12 +65,23 @@ public class DeckService {
 
     public Deck persistDeckIfNeeded(Deck deck) {
         if (deck == null) return null;
-        if (deck.getId() != null) return deck;
-        if (deck.getApiId() != null) {
-            return deckRepository.findByApiId(deck.getApiId()).orElseGet(() -> deckRepository.save(deck));
+        // Si el deck ya tiene id (PK), se asume persistido/gestionado
+        if (deck.getId() != null) {
+            return deckRepository.findById(deck.getId()).orElse(deck);
         }
-        // No hay apiId ni id: simplemente persistir el deck
+        // Si no tiene arquetipo calculado, calcularlo ahora usando el classifier
+        try {
+            if (deck.getArchetype() == null && archetypeClassifier != null) {
+                Archetype type = archetypeClassifier.classify(deck.getPlayerCards());
+                deck.setArchetype(type);
+            }
+        } catch (Exception ignored) {
+            throw new RuntimeException("Error al clasificar el arquetipo del deck: " + ignored.getMessage(), ignored);
+        }
+
+        // Guardar nuevo deck
         return deckRepository.save(deck);
+        // No hay apiId ni id: simplemente persistir el deck
     }
 }
 

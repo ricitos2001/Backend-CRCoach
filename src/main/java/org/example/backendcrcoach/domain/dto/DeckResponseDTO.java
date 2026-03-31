@@ -2,6 +2,7 @@ package org.example.backendcrcoach.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.backendcrcoach.analytics.Archetype;
 import org.example.backendcrcoach.domain.entities.PlayerCard;
 
 import java.util.List;
@@ -10,8 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 public class DeckResponseDTO {
     private Long id;
-    private Long apiId;
-    private String archetype;
+    private Archetype archetype;
     private List<PlayerCard> playerCards;
 }
 

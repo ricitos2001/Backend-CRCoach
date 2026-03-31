@@ -83,7 +83,6 @@ public class PlayerEntityService {
             if (entity.getPlayerDeck() == null) {
                 entity.setPlayerDeck(DeckMapper.toEntity(dto.getPlayerDeck()));
             } else {
-                Optional.ofNullable(dto.getPlayerDeck().getApiId()).ifPresent(entity.getPlayerDeck()::setApiId);
                 Optional.ofNullable(dto.getPlayerDeck().getArchetype()).ifPresent(entity.getPlayerDeck()::setArchetype);
                 Optional.ofNullable(dto.getPlayerDeck().getPlayerCards()).ifPresent(entity.getPlayerDeck()::setPlayerCards);
             }

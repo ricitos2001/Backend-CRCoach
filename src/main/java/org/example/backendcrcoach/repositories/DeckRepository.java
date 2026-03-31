@@ -8,7 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface DeckRepository extends JpaRepository<Deck, Long> {
-    Optional<Deck> findByApiId(Long apiId);
-    Boolean existsByApiId(Long apiId);
+    // ahora no soportamos búsqueda por apiId (campo eliminado)
 }
 

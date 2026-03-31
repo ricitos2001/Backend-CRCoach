@@ -428,7 +428,6 @@ public class PlayerProfileService {
                     deckCards.add(card);
                 }
                 DeckRequestDTO deckDto = new DeckRequestDTO();
-                deckDto.setApiId(null);
                 deckDto.setArchetype(null);
                 deckDto.setPlayerCards(deckCards);
                 profile.setCurrentDeck(DeckMapper.toEntity(deckDto));
@@ -450,7 +449,6 @@ public class PlayerProfileService {
                     supportCards.add(card);
                 }
                 DeckRequestDTO supportDto = new DeckRequestDTO();
-                supportDto.setApiId(null);
                 supportDto.setArchetype(null);
                 supportDto.setPlayerCards(supportCards);
                 profile.setCurrentDeckSupportCards(DeckMapper.toEntity(supportDto));

@@ -8,7 +8,6 @@ public class DeckMapper {
 
     public static Deck toEntity(DeckRequestDTO dto) {
         Deck deck = new Deck();
-        deck.setApiId(dto.getApiId());
         deck.setArchetype(dto.getArchetype());
         deck.setPlayerCards(dto.getPlayerCards());
         return deck;
@@ -17,7 +16,6 @@ public class DeckMapper {
     public static DeckResponseDTO toDTO(Deck deck) {
         return new DeckResponseDTO(
                 deck.getId(),
-                deck.getApiId(),
                 deck.getArchetype(),
                 deck.getPlayerCards()
         );
