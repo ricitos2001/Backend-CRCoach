@@ -53,17 +53,21 @@ public class Metric {
     private LeagueStadistic leagueStatistics;
 
     // Valores calculados a partir del registro de batallas
-    @Embedded
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "winrate_id")
     private WinRate winRate;
 
-    @Embedded
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "streak_id")
     private Streak streak;
 
-    @Embedded
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "battles_id")
     private Battles battles;
 
     // Valores calculados a partir de objetivos y notificaciones
-    @Embedded
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "active_goals_id")
     private ActiveGoals activeGoals;
 
     @Column
@@ -74,85 +78,8 @@ public class Metric {
     @JoinColumn(name = "player_profile_id")
     private PlayerProfile playerProfile;
 
-    // --- Embeddables ---
-    @Embeddable
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class WinRate {
-        @Column(name = "winrate_last25Battles")
-        private Double last25Battles;
-
-        @Column(name = "winrate_last7Days")
-        private Double last7Days;
-    }
-
-    @Embeddable
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class Streak {
-        @Column(name = "streak_current")
-        private Integer current;
-
-        // "WIN" | "LOSS" | null
-        @Column(name = "streak_type")
-        private String type;
-    }
-
-    @Embeddable
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class Battles {
-        @Column(name = "battles_total")
-        private Integer total;
-
-        @Column(name = "battles_last24h")
-        private Integer last24h;
-    }
-
-    @Embeddable
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class MostAdvanced {
-        @Column(name = "mostadvanced_id")
-        private Long id;
-
-        @Column(name = "mostadvanced_title", columnDefinition = "TEXT")
-        private String title;
-
-        @Column(name = "mostadvanced_progress_percent")
-        private Double progressPercent;
-    }
-
-    @Embeddable
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class ActiveGoals {
-        // count of active goals (calculado a partir de la tabla goals)
-        @Column(name = "active_goals_count")
-        private Integer count;
-
-        // nearest deadline string (ISO) - calculado
-        @Column(name = "active_goals_nearest_deadline")
-        private String nearestDeadline;
-
-        @Embedded
-        private MostAdvanced mostAdvanced;
-    }
+    // Las entidades WinRate, Streak, Battles, ActiveGoals y MostAdvanced
+    // ahora son entidades separadas en el paquete domain.entities.
 
 }
 
