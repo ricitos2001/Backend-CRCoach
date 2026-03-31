@@ -59,7 +59,17 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         // Validar y autenticar el token si se obtuvo
         if (jwt != null) {
-            username = jwtUtil.extractUsername(jwt);
+            try {
+                username = jwtUtil.extractUsername(jwt);
+            } catch (IllegalArgumentException | io.jsonwebtoken.JwtException e) {
+                // Token inválido, expirado o con firma no reconocida (posible reinicio del servidor
+                // con clave distinta). Limpiar cookie en la respuesta para que el cliente no siga
+                // manteniendo un token inválido.
+                limpiarCookie(response);
+                // No intentamos autenticar
+                chain.doFilter(request, response);
+                return;
+            }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -82,6 +92,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         Cookie jwtCookie = new Cookie("jwt", null);
         jwtCookie.setPath("/");
         jwtCookie.setHttpOnly(true);
+        jwtCookie.setSecure(true);
         jwtCookie.setMaxAge(0); // Caducar inmediatamente
         response.addCookie(jwtCookie);
     }

@@ -56,29 +56,43 @@ public class UserSchedulingService {
 
         if (userTasks.containsKey(userId)) return;
 
-        // Sólo iniciar si hay una sesión autenticada y corresponde al usuario indicado
+        // Si existe un SecurityContext, comprobar que corresponde al usuario solicitado.
+        // Si no existe (por ejemplo durante el flujo de authenticate donde el controller tiene
+        // la Authentication localmente), permitimos iniciar la tarea confiando en el caller.
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUserDetails)) {
-            log.debug("Not starting scheduling for user {} because there is no authenticated session", userId);
-            return;
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof CustomUserDetails) {
+            CustomUserDetails details = (CustomUserDetails) auth.getPrincipal();
+            if (!userId.equals(details.getId())) {
+                log.debug("Authenticated user id {} does not match requested userId {} - skipping scheduling", details.getId(), userId);
+                return;
+            }
+        } else {
+            log.debug("No SecurityContext available when starting scheduling for user {} - proceeding because caller provided the userId", userId);
         }
 
-        CustomUserDetails details = (CustomUserDetails) auth.getPrincipal();
-        if (!userId.equals(details.getId())) {
-            log.debug("Authenticated user id {} does not match requested userId {} - skipping scheduling", details.getId(), userId);
-            return;
-        }
-
+        // Comprobar inicialmente que el usuario tiene tag vinculado
         User user = userService.obtenerUsuarioPorId(userId);
         if (user.getPlayerTag() == null || user.getPlayerTag().isBlank()) {
             log.debug("User {} has no playerTag, skipping scheduling", userId);
             return;
         }
 
+        // En el Runnable recuperamos el usuario en cada ejecución para evitar usar
+        // una entidad potencialmente obsoleta y para recoger cambios realizados
+        // sobre el playerTag sin necesidad de reiniciar la tarea.
         Runnable task = () -> {
             try {
-                // Llamamos a la sincronización para este perfil solo
-                String tag = user.getPlayerTag();
+                User current = userService.obtenerUsuarioPorId(userId);
+                if (current == null) {
+                    log.warn("Scheduled task: user {} not found, cancelling task", userId);
+                    stopForCurrentUser(userId);
+                    return;
+                }
+                String tag = current.getPlayerTag();
+                if (tag == null || tag.isBlank()) {
+                    log.debug("Scheduled task: user {} has no playerTag, skipping this iteration", userId);
+                    return;
+                }
                 String rawTag = tag.startsWith("#") ? tag.substring(1) : tag;
                 playerProfileService.getPlayer(rawTag);
             } catch (Exception e) {

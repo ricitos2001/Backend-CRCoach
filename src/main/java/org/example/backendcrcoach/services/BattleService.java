@@ -30,10 +30,8 @@ public class BattleService {
     private final BattleRepository battleRepository;
     private final PlayerProfileRepository playerProfileRepository;
     private final PlayerEntityRepository playerEntityRepository;
-    private final ClanRepository clanRepository;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ArenaRepository arenaRepository;
     private final ArenaService arenaService;
     private final ClanService clanService;
     private final org.example.backendcrcoach.config.WebClientHelper webClientHelper;
@@ -52,12 +50,10 @@ public class BattleService {
         this.battleRepository = battleRepository;
         this.playerProfileRepository = playerProfileRepository;
         this.playerEntityRepository = playerEntityRepository;
-        this.clanRepository = clanRepository;
         this.webClient = builder
                 .baseUrl(API_URL)
                 .defaultHeader("Authorization", "Bearer " + API_KEY)
                 .build();
-        this.arenaRepository = arenaRepository;
         this.arenaService = arenaService;
         this.clanService = clanService;
         this.webClientHelper = webClientHelper;

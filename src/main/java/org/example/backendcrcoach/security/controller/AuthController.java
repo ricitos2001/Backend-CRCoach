@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,6 +51,9 @@ public class AuthController {
     @Operation(summary = "Autenticar usuario", description = "Autentica un usuario con email y contraseña y devuelve un token JWT (además establece cookie).")
     public AuthResponse authenticate(@RequestBody UserLoginDTO request, HttpServletResponse response) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        // Establecer la autenticación en el contexto de seguridad para que otros
+        // componentes en el mismo hilo (p.ej. inicio de scheduling) puedan verla.
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String token = jwtUtil.generateToken(userDetails);
@@ -106,6 +110,7 @@ public class AuthController {
             Cookie jwtCookie = new Cookie("jwt", null);
             jwtCookie.setPath("/");
             jwtCookie.setHttpOnly(true);
+            jwtCookie.setSecure(true);
             jwtCookie.setMaxAge(0); // Caducar inmediatamente
             response.addCookie(jwtCookie);
 
@@ -120,7 +125,7 @@ public class AuthController {
                 userSchedulingService.stopForCurrentUser(details.getId());
             }
         } catch (Exception e) {
-            // ignore
+            log.warn("No se pudo detener scheduling para el usuario durante logout: {}", e.getMessage());
         }
 
         return ResponseEntity.badRequest().body("No se encontró un token válido para cerrar sesión.");
