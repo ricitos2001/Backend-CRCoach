@@ -67,10 +67,10 @@ public class MetricsService {
         }
 
         // batallas recientes
-        List<Battle> recentBattles = battleRepository.findByPlayerProfileTagOrderByBattleTimeDesc(tag, PageRequest.of(0, battlesLimit));
+        List<Battle> recentBattles = battleRepository.findByOrderByBattleTimeDesc(tag, PageRequest.of(0, battlesLimit));
 
         // battles.last24h and total battles
-        List<Battle> allRecent = battleRepository.findByPlayerProfileTagOrderByBattleTimeDesc(tag, PageRequest.of(0, 200));
+        List<Battle> allRecent = battleRepository.findByOrderByBattleTimeDesc(tag, PageRequest.of(0, 200));
         int battlesLast24h = 0;
         for (Battle b : allRecent) {
             try {
