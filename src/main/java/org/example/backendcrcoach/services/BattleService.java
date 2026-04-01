@@ -62,10 +62,6 @@ public class BattleService {
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
         Battle battle = BattleMapper.toEntity(dto);
-        // Si el DTO incluye playerTag, intentar enlazar al PlayerProfile existente
-        if (dto.getPlayerTag() != null) {
-            playerProfileRepository.findByTag(dto.getPlayerTag()).ifPresent(battle::setPlayerProfile);
-        }
         if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
             playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(battle::setTeam);
         }
@@ -91,13 +87,6 @@ public class BattleService {
         return battleRepository.findById(id).map(existing -> {
             Battle updated = BattleMapper.toEntity(dto);
             updated.setId(existing.getId());
-
-            if (dto.getPlayerTag() != null) {
-                playerProfileRepository.findByTag(dto.getPlayerTag()).ifPresent(updated::setPlayerProfile);
-            } else {
-                updated.setPlayerProfile(existing.getPlayerProfile());
-            }
-
             if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
                 playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(updated::setTeam);
             } else {
@@ -148,10 +137,6 @@ public class BattleService {
             // Evitar duplicados basándose en el campo 'battleTime' (más fiable que comparar JSON)
             if (battle.getBattleTime() == null) continue;
             if (battleRepository.existsByBattleTime(battle.getBattleTime())) continue;
-
-            // Enlazar al PlayerProfile por tag si existe
-            playerProfileRepository.findByTag(formatTag(playerTag)).ifPresent(battle::setPlayerProfile);
-
             battleRepository.save(battle);
             imported++;
         }

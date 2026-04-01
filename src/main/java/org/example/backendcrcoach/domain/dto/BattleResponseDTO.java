@@ -20,6 +20,5 @@ public class BattleResponseDTO {
     private String gameMode;
     private PlayerEntity team;
     private PlayerEntity opponent;
-    private String playerTag;
 }
 

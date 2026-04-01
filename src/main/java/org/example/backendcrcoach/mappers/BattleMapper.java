@@ -3,6 +3,7 @@ package org.example.backendcrcoach.mappers;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
 import org.example.backendcrcoach.domain.entities.Battle;
+import org.example.backendcrcoach.domain.entities.PlayerProfile;
 
 public class BattleMapper {
 
@@ -33,8 +34,7 @@ public class BattleMapper {
                 battle.getArena(),
                 battle.getGameMode(),
                 battle.getTeam(),
-                battle.getOpponent(),
-                battle.getPlayerProfile() != null ? battle.getPlayerProfile().getTag() : null
+                battle.getOpponent()
         );
     }
 }

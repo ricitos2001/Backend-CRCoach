@@ -56,9 +56,4 @@ public class Battle {
     @ManyToOne
     @JoinColumn(name = "opponent_player_entity_id")
     private PlayerEntity opponent;
-
-    @ManyToOne
-    @JoinColumn(name = "player_profile_id", nullable = true)
-    private PlayerProfile playerProfile;
-
 }
