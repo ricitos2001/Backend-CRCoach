@@ -2,6 +2,7 @@ package org.example.backendcrcoach.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.backendcrcoach.domain.entities.GameMode;
 
 /**
  * Entidad para almacenar batallas (Battle) basada en el JSON de ejemplo.
@@ -46,8 +47,9 @@ public class Battle {
     @JoinColumn(name = "arena_entity_id")
     private Arena arena;
 
-    @Column(columnDefinition = "TEXT")
-    private String gameMode;
+    @ManyToOne
+    @JoinColumn(name = "game_mode_id")
+    private GameMode gameMode;
 
     @ManyToOne
     @JoinColumn(name = "team_player_entity_id")

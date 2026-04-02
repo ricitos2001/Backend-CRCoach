@@ -3,7 +3,7 @@ package org.example.backendcrcoach.mappers;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
 import org.example.backendcrcoach.domain.entities.Battle;
-import org.example.backendcrcoach.domain.entities.PlayerProfile;
+import org.example.backendcrcoach.domain.entities.GameMode;
 
 public class BattleMapper {
 

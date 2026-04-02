@@ -1,6 +1,8 @@
 package org.example.backendcrcoach.config;
 
 import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +36,18 @@ public class WebClientConfig {
                 connectTimeoutMillis, responseTimeoutSeconds, readTimeoutSeconds);
 
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis);
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis)
+                .responseTimeout(Duration.ofSeconds(responseTimeoutSeconds))
+                // Attach Netty read/write timeout handlers with the configured seconds.
+                // Note: responseTimeout already short-circuits the response if exceeds the duration,
+                // but adding Read/Write handlers allows finer control if necessary.
+                .doOnConnected(conn -> {
+                    if (readTimeoutSeconds != null && readTimeoutSeconds > 0) {
+                        conn.addHandlerLast(new ReadTimeoutHandler(readTimeoutSeconds));
+                        conn.addHandlerLast(new WriteTimeoutHandler(readTimeoutSeconds));
+                    }
+                });
 
-        httpClient = httpClient.responseTimeout(Duration.ofSeconds(responseTimeoutSeconds));
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient));
     }

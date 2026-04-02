@@ -1,6 +1,10 @@
 package org.example.backendcrcoach.services;
 
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Async;
 import org.example.backendcrcoach.config.WebClientHelper;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
@@ -26,6 +30,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class BattleService {
     private static final String TAG_PREFIX = "#";
+    private static final Logger log = LoggerFactory.getLogger(BattleService.class);
 
     private final BattleRepository battleRepository;
     private final PlayerProfileRepository playerProfileRepository;
@@ -34,8 +39,10 @@ public class BattleService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArenaService arenaService;
     private final ClanService clanService;
+    private final GameModeService gameModeService;
     private final WebClientHelper webClientHelper;
     private final DeckService deckService;
+    private final ApplicationContext applicationContext;
 
     public BattleService(
             BattleRepository battleRepository,
@@ -45,8 +52,10 @@ public class BattleService {
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
             ArenaService arenaService, ClanService clanService,
+            GameModeService gameModeService,
             WebClientHelper webClientHelper,
-            DeckService deckService) {
+            DeckService deckService,
+            ApplicationContext applicationContext) {
         this.battleRepository = battleRepository;
         this.playerProfileRepository = playerProfileRepository;
         this.playerEntityRepository = playerEntityRepository;
@@ -56,8 +65,22 @@ public class BattleService {
                 .build();
         this.arenaService = arenaService;
         this.clanService = clanService;
+        this.gameModeService = gameModeService;
         this.webClientHelper = webClientHelper;
         this.deckService = deckService;
+        this.applicationContext = applicationContext;
+    }
+
+    @Async("taskExecutor")
+    public void importBattlesForPlayerAsync(String playerTag) {
+        try {
+            // Call through proxy to ensure transactional boundaries are applied to the import
+            BattleService self = applicationContext.getBean(BattleService.class);
+            int imported = self.importBattlesForPlayer(playerTag);
+            log.info("Imported {} battles for player {} (async)", imported, playerTag);
+        } catch (Exception e) {
+            log.error("Error importing battles for player {} asynchronously: {}", playerTag, e.getMessage(), e);
+        }
     }
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
@@ -153,7 +176,8 @@ public class BattleService {
         battle.setIsHostedMatch(readBoolean(json, "isHostedMatch"));
         battle.setLeagueNumber(readInteger(json, "leagueNumber"));
         battle.setArena(arenaService.resolveArenaFromNode(json.get("arena")));
-        battle.setGameMode(readJsonText(json, "gameMode"));
+        // Resolve gameMode node into persisted GameMode entity (if present)
+        battle.setGameMode(gameModeService.resolveGameModeFromNode(json.get("gameMode")));
         battle.setTeam(resolvePlayerEntityFromArray(json.get("team")));
         battle.setOpponent(resolvePlayerEntityFromArray(json.get("opponent")));
 

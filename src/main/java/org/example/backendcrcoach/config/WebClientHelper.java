@@ -18,8 +18,8 @@ public class WebClientHelper {
     private final int maxRetries;
     private final Duration blockTimeout;
 
-    public WebClientHelper(@Value("${webclient.max-retries:10}") int maxRetries,
-                           @Value("${webclient.block-timeout-seconds:10000}") int blockTimeoutSeconds) {
+    public WebClientHelper(@Value("${webclient.max-retries:3}") int maxRetries,
+                           @Value("${webclient.block-timeout-seconds:3600}") int blockTimeoutSeconds) {
         this.maxRetries = maxRetries;
         this.blockTimeout = Duration.ofSeconds(blockTimeoutSeconds);
     }
