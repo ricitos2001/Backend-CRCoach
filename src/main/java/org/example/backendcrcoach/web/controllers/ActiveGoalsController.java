@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/active-goals")
+@RequestMapping("/api/v1/active_goals")
 public class ActiveGoalsController {
     private final ActiveGoalsService service;
 

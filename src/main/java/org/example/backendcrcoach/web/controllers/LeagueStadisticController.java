@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/league-stadistics")
+@RequestMapping("/api/v1/league_stadistics")
 public class LeagueStadisticController {
 
     private final LeagueStadisticService service;
