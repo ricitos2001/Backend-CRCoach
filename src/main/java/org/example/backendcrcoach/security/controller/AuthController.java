@@ -119,7 +119,7 @@ public class AuthController {
 
         // Además intentar detener la tarea programada del usuario actual (si hay contexto)
         try {
-            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            var auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof CustomUserDetails) {
                 CustomUserDetails details = (CustomUserDetails) auth.getPrincipal();
                 userSchedulingService.stopForCurrentUser(details.getId());

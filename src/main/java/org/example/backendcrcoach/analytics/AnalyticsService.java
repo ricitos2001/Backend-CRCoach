@@ -303,11 +303,14 @@ public class AnalyticsService {
         boolean playerIsOpponent = b.getOpponent() != null && tagEqualsNormalized(playerTag, b.getOpponent().getTag());
         if (!playerIsTeam && !playerIsOpponent) return false;
 
-        // 1) Preferir trophyChange del lado del jugador
-        Integer trophyChange = playerIsTeam ? (b.getTeam() != null ? b.getTeam().getTrophyChange() : null) : (b.getOpponent() != null ? b.getOpponent().getTrophyChange() : null);
-        if (trophyChange != null) return trophyChange > 0;
+        // 1) Preferir trophyChange del lado del jugador; si no existe, intentar inferir a partir del trophyChange del contrario
+        Integer playerTrophyChange = playerIsTeam ? (b.getTeam() != null ? b.getTeam().getTrophyChange() : null) : (b.getOpponent() != null ? b.getOpponent().getTrophyChange() : null);
+        Integer otherTrophyChange = playerIsTeam ? (b.getOpponent() != null ? b.getOpponent().getTrophyChange() : null) : (b.getTeam() != null ? b.getTeam().getTrophyChange() : null);
 
-        // 2) Si trophyChange no está, usar crowns comparando lado del jugador vs contrario
+        if (playerTrophyChange != null) return playerTrophyChange > 0;
+        if (otherTrophyChange != null) return otherTrophyChange < 0; // si el contrario pierde trofeos (<0), el jugador ganó
+
+        // 2) Si trophyChange no está en ninguno de los dos, usar crowns comparando lado del jugador vs contrario
         Integer playerCrowns = playerIsTeam ? (b.getTeam() != null ? b.getTeam().getCrowns() : null) : (b.getOpponent() != null ? b.getOpponent().getCrowns() : null);
         Integer otherCrowns = playerIsTeam ? (b.getOpponent() != null ? b.getOpponent().getCrowns() : null) : (b.getTeam() != null ? b.getTeam().getCrowns() : null);
         if (playerCrowns != null && otherCrowns != null) return playerCrowns > otherCrowns;
