@@ -28,8 +28,7 @@ public class CardMapper {
                 card.getMaxEvolutionLevel(),
                 card.getRarity(),
                 card.getElixirCost(),
-                card.getIconUrl(),
-                card.getPlayerProfile() != null ? card.getPlayerProfile().getTag() : null
+                card.getIconUrl()
         );
     }
 }

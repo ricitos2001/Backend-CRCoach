@@ -18,6 +18,5 @@ public class CardRequestDTO {
     private String rarity;
     private Integer elixirCost;
     private IconUrl iconUrl;
-    private String playerTag;
 }
 

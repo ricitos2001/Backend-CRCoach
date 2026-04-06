@@ -27,30 +27,22 @@ public class CardService {
 
     private static final Logger log = LoggerFactory.getLogger(CardService.class);
 
-    private final CardRepository cardRepository;
-    private final PlayerProfileRepository playerProfileRepository;
-    private final WebClient webClient;
+    private final CardRepository cardRepository;private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final WebClientHelper webClientHelper;
 
     public CardService(CardRepository cardRepository,
-                       PlayerProfileRepository playerProfileRepository,
                        WebClient.Builder builder,
                        @Value("${clash.royale.api.url}") String API_URL,
                        @Value("${clash.royale.api.key}") String API_KEY,
                        WebClientHelper webClientHelper) {
         this.cardRepository = cardRepository;
-        this.playerProfileRepository = playerProfileRepository;
         this.webClient = builder.baseUrl(API_URL).defaultHeader("Authorization", "Bearer " + API_KEY).build();
         this.webClientHelper = webClientHelper;
     }
 
     public CardResponseDTO create(CardRequestDTO dto) {
         Card card = CardMapper.toEntity(dto);
-        // link to player if provided
-        if (dto.getPlayerTag() != null) {
-            playerProfileRepository.findByTag(dto.getPlayerTag()).ifPresent(card::setPlayerProfile);
-        }
         Card saved = cardRepository.save(card);
         return CardMapper.toDTO(saved);
     }
@@ -139,6 +131,7 @@ public class CardService {
         if (iconNode != null && !iconNode.isNull()) {
             IconUrl icon = new IconUrl();
             icon.setMedium(readText(iconNode, "medium"));
+            icon.setHeroMedium(readText(iconNode, "heroMedium"));
             icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
             card.setIconUrl(icon);
         }

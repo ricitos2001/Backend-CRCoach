@@ -40,10 +40,5 @@ public class Card {
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "icon_url_id")
     private IconUrl iconUrl;
-
-    @ManyToOne
-    @JoinColumn(name = "player_profile_id", nullable = true)
-    private PlayerProfile playerProfile;
-
 }
 
