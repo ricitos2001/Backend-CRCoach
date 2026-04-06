@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -27,18 +26,18 @@ import java.util.List;
 	List<Battle> findByTeamTagWithFilters(@Param("tag") String tag,
 										  @Param("gameMode") String gameMode);
 
-	// Misma consulta pero aplicando filtros por rango temporal sobre la columna battleTimeTs (tipo Instant)
+	// Misma consulta pero aplicando filtros por rango temporal sobre la columna battleTime (string ISO)
 	@Query("""
 		SELECT b FROM Battle b
 		WHERE (b.team.tag = :tag OR b.opponent.tag = :tag)
 		  AND (:gameMode IS NULL OR b.gameMode.name = :gameMode)
-		  AND (:from IS NULL OR b.battleTimeTs >= :from)
-		  AND (:to IS NULL OR b.battleTimeTs <= :to)
+		  AND (:from IS NULL OR b.battleTime >= :from)
+		  AND (:to IS NULL OR b.battleTime <= :to)
 	""")
 	List<Battle> findByTeamTagWithFiltersRange(@Param("tag") String tag,
 											  @Param("gameMode") String gameMode,
-											  @Param("from") Instant from,
-											  @Param("to") Instant to);
+											  @Param("from") String from,
+											  @Param("to") String to);
 
 	// Obtener batallas recientes donde el jugador aparece en team u opponent
 	List<Battle> findByTeamTagOrOpponentTagOrderByBattleTimeDesc(String teamTag, String opponentTag, Pageable pageable);

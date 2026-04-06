@@ -9,8 +9,8 @@ import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.example.backendcrcoach.repositories.BattleRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,8 +50,8 @@ public class AnalyticsService {
         for (Battle b : battles) {
             Archetype arch = Archetype.UNKNOWN;
             // Determinar cuál es el rival respecto al tag solicitado
-            boolean playerIsTeam = b.getTeam() != null && tag != null && tag.equals(b.getTeam().getTag());
-            boolean playerIsOpponent = b.getOpponent() != null && tag != null && tag.equals(b.getOpponent().getTag());
+            boolean playerIsTeam = b.getTeam() != null && tagEqualsNormalized(tag, b.getTeam().getTag());
+            boolean playerIsOpponent = b.getOpponent() != null && tagEqualsNormalized(tag, b.getOpponent().getTag());
             // rivalDeck = the other side's deck
             if (playerIsTeam) {
                 if (b.getOpponent() != null && b.getOpponent().getPlayerDeck() != null && b.getOpponent().getPlayerDeck().getArchetype() != null) {
@@ -125,8 +125,8 @@ public class AnalyticsService {
         for (Battle b : battles) {
             if (inferWinFromBattle(b, tag)) continue; // solo derrotas
             // Determinar las cartas del rival en esta batalla (según side)
-            boolean playerIsTeam = b.getTeam() != null && tag != null && tag.equals(b.getTeam().getTag());
-            boolean playerIsOpponent = b.getOpponent() != null && tag != null && tag.equals(b.getOpponent().getTag());
+            boolean playerIsTeam = b.getTeam() != null && tagEqualsNormalized(tag, b.getTeam().getTag());
+            boolean playerIsOpponent = b.getOpponent() != null && tagEqualsNormalized(tag, b.getOpponent().getTag());
             List<PlayerCard> rivalCards = null;
             if (playerIsTeam) {
                 if (b.getOpponent() != null && b.getOpponent().getPlayerDeck() != null) rivalCards = b.getOpponent().getPlayerDeck().getPlayerCards();
@@ -184,20 +184,27 @@ public class AnalyticsService {
 
             java.util.List<jakarta.persistence.criteria.Predicate> preds = new java.util.ArrayList<>();
 
-            jakarta.persistence.criteria.Predicate tagPred = cb.or(
-                    cb.equal(teamJoin.get("tag"), tag),
-                    cb.equal(oppJoin.get("tag"), tag)
-            );
+            // Prepare normalized tag forms for comparison (with and without '#')
+            String noHash = normalizeTagForDbComparisons(tag);
+            String withHash = noHash != null ? ("#" + noHash) : null;
+            jakarta.persistence.criteria.Expression<String> teamTagExpr = cb.upper(teamJoin.get("tag"));
+            jakarta.persistence.criteria.Expression<String> oppTagExpr = cb.upper(oppJoin.get("tag"));
+            java.util.List<jakarta.persistence.criteria.Predicate> tagOrs = new java.util.ArrayList<>();
+            if (withHash != null) tagOrs.add(cb.equal(teamTagExpr, withHash));
+            if (noHash != null) tagOrs.add(cb.equal(teamTagExpr, noHash));
+            if (withHash != null) tagOrs.add(cb.equal(oppTagExpr, withHash));
+            if (noHash != null) tagOrs.add(cb.equal(oppTagExpr, noHash));
+            jakarta.persistence.criteria.Predicate tagPred = cb.or(tagOrs.toArray(new jakarta.persistence.criteria.Predicate[0]));
             preds.add(tagPred);
 
             if (gameMode != null) {
                 preds.add(cb.equal(root.get("gameMode").get("name"), gameMode));
             }
             if (fromInst != null) {
-                preds.add(cb.greaterThanOrEqualTo(root.get("battleTimeTs"), fromInst));
+                preds.add(cb.greaterThanOrEqualTo(root.get("battleTime"), formatInstantAsDbString(fromInst)));
             }
             if (toInst != null) {
-                preds.add(cb.lessThanOrEqualTo(root.get("battleTimeTs"), toInst));
+                preds.add(cb.lessThanOrEqualTo(root.get("battleTime"), formatInstantAsDbString(toInst)));
             }
 
             return cb.and(preds.toArray(new jakarta.persistence.criteria.Predicate[0]));
@@ -229,17 +236,13 @@ public class AnalyticsService {
         dto.setTotalBattles((long) filteredBattles.size());
 
         // Win rate last 25: ordenar por battleTime (desc) y tomar 25
-        // Ordenar por timestamp de batalla: preferir el campo battleTimeTs (Instant) si está presente
+        // Ordenar por timestamp de batalla: parsear siempre el campo battleTime (string)
         List<Battle> recentSorted = new ArrayList<>(filteredBattles);
         recentSorted.sort((a, b) -> {
-            Instant ta = a.getBattleTimeTs();
-            Instant tb = b.getBattleTimeTs();
-            if (ta == null) {
-                try { ta = a.getBattleTime() != null ? Instant.parse(a.getBattleTime()) : Instant.EPOCH; } catch (Exception ex) { ta = Instant.EPOCH; }
-            }
-            if (tb == null) {
-                try { tb = b.getBattleTime() != null ? Instant.parse(b.getBattleTime()) : Instant.EPOCH; } catch (Exception ex) { tb = Instant.EPOCH; }
-            }
+            Instant ta = parseNullableInstant(a.getBattleTime());
+            Instant tb = parseNullableInstant(b.getBattleTime());
+            if (ta == null) ta = Instant.EPOCH;
+            if (tb == null) tb = Instant.EPOCH;
             return tb.compareTo(ta);
         });
         List<Battle> recent25 = recentSorted.stream().limit(25).collect(Collectors.toList());
@@ -252,10 +255,7 @@ public class AnalyticsService {
         long wins7d = 0;
         long total7d = 0;
         for (Battle b : filteredBattles) {
-            Instant ts = b.getBattleTimeTs();
-            if (ts == null) {
-                try { ts = b.getBattleTime() != null ? Instant.parse(b.getBattleTime()) : null; } catch (Exception ex) { ts = null; }
-            }
+            Instant ts = parseNullableInstant(b.getBattleTime());
             if (ts == null) continue;
             if (ts.isBefore(sevenDaysAgo)) continue;
             total7d++;
@@ -281,7 +281,7 @@ public class AnalyticsService {
         if (!recentSorted.isEmpty()) {
             Battle last = recentSorted.get(0);
             // Determine which side is player
-            boolean playerIsTeam = last.getTeam() != null && tag.equals(last.getTeam().getTag());
+            boolean playerIsTeam = last.getTeam() != null && tagEqualsNormalized(tag, last.getTeam().getTag());
             if (playerIsTeam && last.getTeam().getPlayerDeck() != null && last.getTeam().getPlayerDeck().getPlayerCards() != null) {
                 java.util.List<PlayerCard> pcs = last.getTeam().getPlayerDeck().getPlayerCards();
                 double avg = pcs.stream().filter(p -> p != null && p.getElixirCost() != null).mapToInt(PlayerCard::getElixirCost).average().orElse(Double.NaN);
@@ -299,8 +299,8 @@ public class AnalyticsService {
 
     private boolean inferWinFromBattle(Battle b, String playerTag) {
         if (b == null) return false;
-        boolean playerIsTeam = b.getTeam() != null && playerTag != null && playerTag.equals(b.getTeam().getTag());
-        boolean playerIsOpponent = b.getOpponent() != null && playerTag != null && playerTag.equals(b.getOpponent().getTag());
+        boolean playerIsTeam = b.getTeam() != null && tagEqualsNormalized(playerTag, b.getTeam().getTag());
+        boolean playerIsOpponent = b.getOpponent() != null && tagEqualsNormalized(playerTag, b.getOpponent().getTag());
         if (!playerIsTeam && !playerIsOpponent) return false;
 
         // 1) Preferir trophyChange del lado del jugador
@@ -330,10 +330,44 @@ public class AnalyticsService {
             try {
                 return java.time.OffsetDateTime.parse(s).toInstant();
             } catch (Exception ex) {
-                java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(s);
-                return ldt.toInstant(java.time.ZoneOffset.UTC);
+                // Try compact format like 20260405T153200.000Z
+                try {
+                    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss.SSSX");
+                    OffsetDateTime odt = OffsetDateTime.parse(s, fmt);
+                    return odt.toInstant();
+                } catch (Exception ex2) {
+                    try {
+                        DateTimeFormatter fmt2 = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssX");
+                        OffsetDateTime odt2 = OffsetDateTime.parse(s, fmt2);
+                        return odt2.toInstant();
+                    } catch (Exception ex3) {
+                        LocalDateTime ldt = LocalDateTime.parse(s);
+                        return ldt.toInstant(ZoneOffset.UTC);
+                    }
+                }
             }
         }
+    }
+
+    private String formatInstantAsDbString(Instant inst) {
+        if (inst == null) return null;
+        ZonedDateTime zdt = inst.atZone(ZoneOffset.UTC);
+        DateTimeFormatter out = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss.SSS'Z'");
+        return zdt.format(out);
+    }
+
+    private String normalizeTagForDbComparisons(String t) {
+        if (t == null) return null;
+        String s = t.trim();
+        if (s.startsWith("#")) s = s.substring(1);
+        return s.toUpperCase();
+    }
+
+    private boolean tagEqualsNormalized(String a, String b) {
+        if (a == null || b == null) return false;
+        String na = normalizeTagForDbComparisons(a);
+        String nb = normalizeTagForDbComparisons(b);
+        return na != null && nb != null && na.equals(nb);
     }
 }
 

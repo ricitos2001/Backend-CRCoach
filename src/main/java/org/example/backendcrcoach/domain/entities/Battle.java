@@ -60,7 +60,5 @@ public class Battle {
     @JoinColumn(name = "opponent_player_entity_id")
     private PlayerEntity opponent;
 
-    // Timestamp parsed from battleTime (ISO) to allow efficient DB queries and range filters
-    @Column(name = "battle_time_ts")
-    private Instant battleTimeTs;
+    // NOTE: removed battleTimeTs. Filtering by period uses the original `battleTime` string field.
 }
