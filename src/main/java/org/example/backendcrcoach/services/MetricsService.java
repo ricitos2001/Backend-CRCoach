@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class MetricsService {
 
     private static final Logger log = LoggerFactory.getLogger(MetricsService.class);
@@ -67,10 +68,10 @@ public class MetricsService {
         }
 
         // batallas recientes
-        List<Battle> recentBattles = battleRepository.findByOrderByBattleTimeDesc(tag, PageRequest.of(0, battlesLimit));
+        List<Battle> recentBattles = battleRepository.findByTeamTagOrderByBattleTimeDesc(tag, PageRequest.of(0, battlesLimit));
 
         // battles.last24h and total battles
-        List<Battle> allRecent = battleRepository.findByOrderByBattleTimeDesc(tag, PageRequest.of(0, 200));
+        List<Battle> allRecent = battleRepository.findByTeamTagOrderByBattleTimeDesc(tag, PageRequest.of(0, 200));
         int battlesLast24h = 0;
         for (Battle b : allRecent) {
             try {

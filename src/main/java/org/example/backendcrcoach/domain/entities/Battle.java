@@ -3,6 +3,7 @@ package org.example.backendcrcoach.domain.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.backendcrcoach.domain.entities.GameMode;
+import java.time.Instant;
 
 /**
  * Entidad para almacenar batallas (Battle) basada en el JSON de ejemplo.
@@ -58,4 +59,8 @@ public class Battle {
     @ManyToOne
     @JoinColumn(name = "opponent_player_entity_id")
     private PlayerEntity opponent;
+
+    // Timestamp parsed from battleTime (ISO) to allow efficient DB queries and range filters
+    @Column(name = "battle_time_ts")
+    private Instant battleTimeTs;
 }

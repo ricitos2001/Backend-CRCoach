@@ -181,6 +181,27 @@ public class BattleService {
         battle.setTeam(resolvePlayerEntityFromArray(json.get("team")));
         battle.setOpponent(resolvePlayerEntityFromArray(json.get("opponent")));
 
+        // Parse battleTime string into Instant and store in battleTimeTs for DB queries
+        try {
+            String bt = battle.getBattleTime();
+            if (bt != null && !bt.isBlank()) {
+                java.time.Instant ts;
+                try {
+                    ts = java.time.Instant.parse(bt);
+                } catch (Exception e) {
+                    try {
+                        ts = java.time.OffsetDateTime.parse(bt).toInstant();
+                    } catch (Exception ex) {
+                        java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(bt);
+                        ts = ldt.toInstant(java.time.ZoneOffset.UTC);
+                    }
+                }
+                battle.setBattleTimeTs(ts);
+            }
+        } catch (Exception ignored) {
+            // ignore parse errors, leave battleTimeTs null
+        }
+
         return battle;
     }
 
