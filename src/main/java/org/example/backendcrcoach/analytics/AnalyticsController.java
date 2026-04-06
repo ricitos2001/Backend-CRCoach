@@ -36,6 +36,8 @@ public class AnalyticsController {
             normalizedTag = "#" + normalizedTag;
         }
         WeaknessReportDto report = analyticsService.getWeaknesses(normalizedTag, gameMode, from, to, minBattles);
+        // Persistir informe en base de datos
+        analyticsService.saveWeaknessReport(report);
         return ResponseEntity.ok(report);
     }
 
@@ -58,6 +60,8 @@ public class AnalyticsController {
         long totalLosses = analyticsService.getTotalLossesForFilter(normalizedTag, gameMode, from, to);
         report.setTotalLosses(totalLosses);
         report.setProblematicCards(cards);
+        // Persistir informe en base de datos
+        analyticsService.saveProblematicCardsReport(report);
         return ResponseEntity.ok(report);
     }
 
@@ -73,6 +77,8 @@ public class AnalyticsController {
             normalizedTag = "#" + normalizedTag;
         }
         PlayerSummaryDto summary = analyticsService.getPlayerSummary(normalizedTag, gameMode, from, to);
+        // Persistir resumen en base de datos
+        analyticsService.savePlayerSummary(summary);
         return ResponseEntity.ok(summary);
     }
 }

@@ -7,6 +7,14 @@ import org.example.backendcrcoach.domain.entities.PlayerCard;
 import org.example.backendcrcoach.domain.entities.PlayerProfile;
 import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.example.backendcrcoach.repositories.BattleRepository;
+import org.example.backendcrcoach.repositories.WeaknessReportRepository;
+import org.example.backendcrcoach.repositories.ProblematicCardsReportRepository;
+import org.example.backendcrcoach.repositories.PlayerSummaryReportRepository;
+import org.example.backendcrcoach.domain.entities.WeaknessReport;
+import org.example.backendcrcoach.domain.entities.ProblematicCardsReport;
+import org.example.backendcrcoach.domain.entities.PlayerSummaryReport;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -20,10 +28,21 @@ public class AnalyticsService {
 
     private final BattleRepository battleRepository;
     private final PlayerProfileRepository playerProfileRepository;
+    private final WeaknessReportRepository weaknessReportRepository;
+    private final ProblematicCardsReportRepository problematicCardsReportRepository;
+    private final PlayerSummaryReportRepository playerSummaryReportRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AnalyticsService(BattleRepository battleRepository, PlayerProfileRepository playerProfileRepository) {
+    public AnalyticsService(BattleRepository battleRepository,
+                            PlayerProfileRepository playerProfileRepository,
+                            WeaknessReportRepository weaknessReportRepository,
+                            ProblematicCardsReportRepository problematicCardsReportRepository,
+                            PlayerSummaryReportRepository playerSummaryReportRepository) {
         this.battleRepository = battleRepository;
         this.playerProfileRepository = playerProfileRepository;
+        this.weaknessReportRepository = weaknessReportRepository;
+        this.problematicCardsReportRepository = problematicCardsReportRepository;
+        this.playerSummaryReportRepository = playerSummaryReportRepository;
     }
 
     /**
@@ -295,6 +314,59 @@ public class AnalyticsService {
         dto.setAvgElixirLastDeck(avgElixir);
 
         return dto;
+    }
+
+    // Persistencia de informes: convierten DTOs a entidades simples y las guardan
+    public void saveWeaknessReport(WeaknessReportDto dto) {
+        if (dto == null) return;
+        WeaknessReport e = WeaknessReport.builder()
+                .playerTag(dto.getPlayerTag())
+                .totalBattles(dto.getTotalBattles())
+                .periodFrom(dto.getPeriodFrom())
+                .periodTo(dto.getPeriodTo())
+                .weakestArchetype(dto.getWeakestArchetype())
+                .strongestArchetype(dto.getStrongestArchetype())
+                .createdAt(Instant.now())
+                .build();
+        try {
+            if (dto.getByArchetype() != null) e.setByArchetypeJson(objectMapper.writeValueAsString(dto.getByArchetype()));
+        } catch (JsonProcessingException ex) {
+            // fallback: store toString
+            e.setByArchetypeJson(dto.getByArchetype().toString());
+        }
+        weaknessReportRepository.save(e);
+    }
+
+    public void saveProblematicCardsReport(ProblematicCardsReportDto dto) {
+        if (dto == null) return;
+        ProblematicCardsReport e = ProblematicCardsReport.builder()
+                .playerTag(dto.getPlayerTag())
+                .totalLosses(dto.getTotalLosses())
+                .createdAt(Instant.now())
+                .build();
+        try {
+            if (dto.getProblematicCards() != null) e.setProblematicCardsJson(objectMapper.writeValueAsString(dto.getProblematicCards()));
+        } catch (JsonProcessingException ex) {
+            e.setProblematicCardsJson(dto.getProblematicCards().toString());
+        }
+        problematicCardsReportRepository.save(e);
+    }
+
+    public void savePlayerSummary(PlayerSummaryDto dto) {
+        if (dto == null) return;
+        PlayerSummaryReport e = PlayerSummaryReport.builder()
+                .playerTag(dto.getPlayerTag())
+                .trophies(dto.getTrophies())
+                .winRateLast25(dto.getWinRateLast25())
+                .winRateLast7d(dto.getWinRateLast7d())
+                .currentStreak(dto.getCurrentStreak())
+                .totalBattles(dto.getTotalBattles())
+                .weakestArchetype(dto.getWeakestArchetype())
+                .strongestArchetype(dto.getStrongestArchetype())
+                .avgElixirLastDeck(dto.getAvgElixirLastDeck())
+                .createdAt(Instant.now())
+                .build();
+        playerSummaryReportRepository.save(e);
     }
 
     private boolean inferWinFromBattle(Battle b, String playerTag) {
