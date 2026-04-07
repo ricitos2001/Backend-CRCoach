@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.analytics;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.example.backendcrcoach.analytics.dto.PlayerSummaryDto;
 import org.example.backendcrcoach.analytics.dto.ProblematicCardDto;
 import org.example.backendcrcoach.analytics.dto.ProblematicCardsReportDto;
@@ -23,6 +24,7 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
+    @Operation(summary = "Obtiene un informe de las debilidades de un jugador específico, basado en sus derrotas. Se pueden aplicar filtros por modo de juego, rango de fechas y número mínimo de batallas.")
     @GetMapping("/player/{tag}/weaknesses")
     public ResponseEntity<WeaknessReportDto> getWeaknesses(
             @PathVariable("tag") String tag,
@@ -41,6 +43,7 @@ public class AnalyticsController {
         return ResponseEntity.ok(report);
     }
 
+    @Operation(summary = "Obtiene un informe de las cartas más problemáticas para un jugador específico, basado en sus derrotas. Se pueden aplicar filtros por modo de juego, rango de fechas, número mínimo de apariciones y límite de resultados.")
     @GetMapping("/player/{tag}/cards") public ResponseEntity<ProblematicCardsReportDto> getProblematicCards(
             @PathVariable("tag") String tag,
             @RequestParam(required = false) String gameMode,
@@ -54,7 +57,7 @@ public class AnalyticsController {
             normalizedTag = "#" + normalizedTag;
         }
         List<ProblematicCardDto> cards = analyticsService.getProblematicCards(normalizedTag, gameMode, from, to, limit, minAppearances);
-        org.example.backendcrcoach.analytics.dto.ProblematicCardsReportDto report = new org.example.backendcrcoach.analytics.dto.ProblematicCardsReportDto();
+        ProblematicCardsReportDto report = new ProblematicCardsReportDto();
         report.setPlayerTag(normalizedTag);
         // compute total losses consistently with service
         long totalLosses = analyticsService.getTotalLossesForFilter(normalizedTag, gameMode, from, to);
@@ -65,6 +68,7 @@ public class AnalyticsController {
         return ResponseEntity.ok(report);
     }
 
+    @Operation(summary = "Obtiene un resumen de las estadísticas de un jugador específico, incluyendo su rendimiento general, tendencias y áreas de mejora. Se pueden aplicar filtros por modo de juego y rango de fechas.")
     @GetMapping("/player/{tag}/summary")
     public ResponseEntity<PlayerSummaryDto> getPlayerSummary(
             @PathVariable("tag") String tag,
