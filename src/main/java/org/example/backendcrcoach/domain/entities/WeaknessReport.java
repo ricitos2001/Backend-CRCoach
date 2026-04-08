@@ -3,6 +3,7 @@ package org.example.backendcrcoach.domain.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Getter
@@ -26,8 +27,8 @@ public class WeaknessReport {
 
     private String periodTo;
 
-    @Column(columnDefinition = "TEXT")
-    private String byArchetypeJson; // JSON serialized list of ArchetypeStatDto
+    @OneToMany(mappedBy = "weaknessReport", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ArchetypeStat> archetypeStats;
 
     private String weakestArchetype;
 

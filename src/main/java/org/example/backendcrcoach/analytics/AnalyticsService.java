@@ -10,11 +10,14 @@ import org.example.backendcrcoach.repositories.BattleRepository;
 import org.example.backendcrcoach.repositories.WeaknessReportRepository;
 import org.example.backendcrcoach.repositories.ProblematicCardsReportRepository;
 import org.example.backendcrcoach.repositories.PlayerSummaryReportRepository;
+import org.example.backendcrcoach.repositories.ProblematicCardRepository;
+import org.example.backendcrcoach.repositories.ArchetypeStatRepository;
 import org.example.backendcrcoach.domain.entities.WeaknessReport;
 import org.example.backendcrcoach.domain.entities.ProblematicCardsReport;
 import org.example.backendcrcoach.domain.entities.PlayerSummaryReport;
+import org.example.backendcrcoach.domain.entities.ArchetypeStat;
+import org.example.backendcrcoach.domain.entities.ProblematicCard;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -31,18 +34,24 @@ public class AnalyticsService {
     private final WeaknessReportRepository weaknessReportRepository;
     private final ProblematicCardsReportRepository problematicCardsReportRepository;
     private final PlayerSummaryReportRepository playerSummaryReportRepository;
+    private final ProblematicCardRepository problematicCardRepository;
+    private final ArchetypeStatRepository archetypeStatRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AnalyticsService(BattleRepository battleRepository,
                             PlayerProfileRepository playerProfileRepository,
                             WeaknessReportRepository weaknessReportRepository,
                             ProblematicCardsReportRepository problematicCardsReportRepository,
-                            PlayerSummaryReportRepository playerSummaryReportRepository) {
+                            PlayerSummaryReportRepository playerSummaryReportRepository,
+                            ProblematicCardRepository problematicCardRepository,
+                            ArchetypeStatRepository archetypeStatRepository) {
         this.battleRepository = battleRepository;
         this.playerProfileRepository = playerProfileRepository;
         this.weaknessReportRepository = weaknessReportRepository;
         this.problematicCardsReportRepository = problematicCardsReportRepository;
         this.playerSummaryReportRepository = playerSummaryReportRepository;
+        this.problematicCardRepository = problematicCardRepository;
+        this.archetypeStatRepository = archetypeStatRepository;
     }
 
     /**
@@ -328,13 +337,27 @@ public class AnalyticsService {
                 .strongestArchetype(dto.getStrongestArchetype())
                 .createdAt(Instant.now())
                 .build();
-        try {
-            if (dto.getByArchetype() != null) e.setByArchetypeJson(objectMapper.writeValueAsString(dto.getByArchetype()));
-        } catch (JsonProcessingException ex) {
-            // fallback: store toString
-            e.setByArchetypeJson(dto.getByArchetype().toString());
+        WeaknessReport saved = weaknessReportRepository.save(e);
+
+        // Persistir registros individuales de archetype stats
+        if (dto.getByArchetype() != null && !dto.getByArchetype().isEmpty()) {
+            java.util.List<ArchetypeStat> stats = new java.util.ArrayList<>();
+            for (ArchetypeStatDto as : dto.getByArchetype()) {
+                ArchetypeStat st = ArchetypeStat.builder()
+                        .weaknessReport(saved)
+                        .archetype(as.getArchetype() != null ? as.getArchetype().name() : null)
+                        .battles(as.getBattles())
+                        .wins(as.getWins())
+                        .losses(as.getLosses())
+                        .winRate(as.getWinRate())
+                        .label(as.getLabel())
+                        .createdAt(Instant.now())
+                        .build();
+                stats.add(st);
+            }
+            archetypeStatRepository.saveAll(stats);
+            saved.setArchetypeStats(stats);
         }
-        weaknessReportRepository.save(e);
     }
 
     public void saveProblematicCardsReport(ProblematicCardsReportDto dto) {
@@ -344,12 +367,26 @@ public class AnalyticsService {
                 .totalLosses(dto.getTotalLosses())
                 .createdAt(Instant.now())
                 .build();
-        try {
-            if (dto.getProblematicCards() != null) e.setProblematicCardsJson(objectMapper.writeValueAsString(dto.getProblematicCards()));
-        } catch (JsonProcessingException ex) {
-            e.setProblematicCardsJson(dto.getProblematicCards().toString());
+        ProblematicCardsReport saved = problematicCardsReportRepository.save(e);
+
+        // Persistir registros individuales de problematic cards
+        if (dto.getProblematicCards() != null && !dto.getProblematicCards().isEmpty()) {
+            java.util.List<ProblematicCard> list = new java.util.ArrayList<>();
+            for (ProblematicCardDto pc : dto.getProblematicCards()) {
+                ProblematicCard p = ProblematicCard.builder()
+                        .problematicCardsReport(saved)
+                        .cardId(pc.getCardId())
+                        .name(pc.getName())
+                        .appearances(pc.getAppearances())
+                        .playerLossRate(pc.getPlayerLossRate())
+                        .iconUrl(pc.getIconUrl())
+                        .createdAt(Instant.now())
+                        .build();
+                list.add(p);
+            }
+            problematicCardRepository.saveAll(list);
+            saved.setProblematicCards(list);
         }
-        problematicCardsReportRepository.save(e);
     }
 
     public void savePlayerSummary(PlayerSummaryDto dto) {
@@ -405,7 +442,7 @@ public class AnalyticsService {
             try {
                 return java.time.OffsetDateTime.parse(s).toInstant();
             } catch (Exception ex) {
-                // Try compact format like 20260405T153200.000Z
+                // Try compact format  20260405T153200.000Z
                 try {
                     DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss.SSSX");
                     OffsetDateTime odt = OffsetDateTime.parse(s, fmt);

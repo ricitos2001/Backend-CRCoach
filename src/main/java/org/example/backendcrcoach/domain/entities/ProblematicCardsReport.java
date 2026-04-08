@@ -3,6 +3,7 @@ package org.example.backendcrcoach.domain.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Getter
@@ -22,8 +23,8 @@ public class ProblematicCardsReport {
 
     private Long totalLosses;
 
-    @Column(columnDefinition = "TEXT")
-    private String problematicCardsJson; // JSON serialized list of ProblematicCardDto
+    @OneToMany(mappedBy = "problematicCardsReport", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProblematicCard> problematicCards;
 
     private Instant createdAt;
 }
