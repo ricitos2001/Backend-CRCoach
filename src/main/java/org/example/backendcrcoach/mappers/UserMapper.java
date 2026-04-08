@@ -28,6 +28,7 @@ public class UserMapper {
                 user.getSurnames(),
                 user.getUsername(),
                 user.getEmail(),
+                user.getPhoneNumber(),
                 user.getPasswordHash(),
                 user.getAvatarUrl(),
                 user.getRole(),

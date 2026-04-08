@@ -139,6 +139,7 @@ public class UserService {
         Optional.ofNullable(user.getSurnames()).ifPresent(updatedUser::setSurnames);
         Optional.ofNullable(user.getUsername()).ifPresent(updatedUser::setUsername);
         Optional.ofNullable(user.getEmail()).ifPresent(updatedUser::setEmail);
+        Optional.ofNullable(user.getPhoneNumber()).ifPresent(updatedUser::setPhoneNumber);
         Optional.ofNullable(user.getPasswordHash()).ifPresent(updatedUser::setPasswordHash);
         Optional.ofNullable(user.getAvatarUrl()).ifPresent(updatedUser::setAvatarUrl);
         Optional.ofNullable(user.getRole()).ifPresent(updatedUser::setRole);
