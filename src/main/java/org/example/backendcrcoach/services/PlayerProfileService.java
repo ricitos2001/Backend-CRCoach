@@ -71,17 +71,48 @@ public class PlayerProfileService {
     }
 
     public Page<PlayerProfileResponseDTO> list(Pageable pageable) {
-        return playerProfileRepository.findAll(pageable).map(PlayerProfileMapper::toDTO);
+        Page<PlayerProfile> page = playerProfileRepository.findAll(pageable);
+        // Inicializar colecciones lazy antes de mapear a DTOs para evitar LazyInitializationException
+        page.forEach(this::initializeCollections);
+        return page.map(PlayerProfileMapper::toDTO);
     }
 
     public PlayerProfileResponseDTO showById(Long id) {
         PlayerProfile profile = playerProfileRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("PlayerProfile no encontrado con id: " + id));
+        // Inicializar colecciones lazy mientras la transacción está abierta
+        initializeCollections(profile);
         return PlayerProfileMapper.toDTO(profile);
     }
 
     public PlayerProfileResponseDTO showByTag(String playerTag) {
         PlayerProfile profile = playerProfileRepository.findByTag(playerTag).orElseThrow(() -> new IllegalArgumentException("PlayerProfile no encontrado con tag: " + playerTag));
+        // Inicializar colecciones lazy mientras la transacción está abierta
+        initializeCollections(profile);
         return PlayerProfileMapper.toDTO(profile);
+    }
+
+    /**
+     * Fuerza la inicialización de colecciones lazy que luego son serializadas
+     * (por ejemplo Deck.playerCards y listas de PlayerCard) para evitar
+     * LazyInitializationException al serializar fuera de la sesión de Hibernate.
+     */
+    private void initializeCollections(PlayerProfile profile) {
+        if (profile == null) return;
+        try {
+            if (profile.getPlayerCards() != null) profile.getPlayerCards().size();
+            if (profile.getSupportCards() != null) profile.getSupportCards().size();
+            if (profile.getCurrentDeck() != null && profile.getCurrentDeck().getPlayerCards() != null)
+                profile.getCurrentDeck().getPlayerCards().size();
+            if (profile.getCurrentDeckSupportCards() != null && profile.getCurrentDeckSupportCards().getPlayerCards() != null)
+                profile.getCurrentDeckSupportCards().getPlayerCards().size();
+            // Inicializar carta favorita si existe
+            if (profile.getCurrentFavouriteCard() != null) {
+                // acceder a un campo simple forzará inicialización si fuera lazy proxy
+                profile.getCurrentFavouriteCard().getCardId();
+            }
+        } catch (Exception ex) {
+            // No propagamos la excepción de inicialización; el objetivo es intentar evitar la LazyInitializationException
+        }
     }
     public PlayerProfileResponseDTO create(PlayerProfileRequestDTO dto) {
         if (dto.getTag() != null && playerProfileRepository.existsByTag(dto.getTag())) {
