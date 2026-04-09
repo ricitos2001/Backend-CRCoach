@@ -59,7 +59,7 @@ public class SecurityConfig {
                 //.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/authenticate", "/api/v1/auth/register", "/api/v1/auth/logout", "/api/v1/auth/password/**").permitAll()
-                        .requestMatchers("/api/v1/users/email-exists/**", "/api/v1/users/username-exists/**").permitAll()
+                        .requestMatchers("/api/v1/users/email-exists/**", "/api/v1/users/username-exists/**", "/api/v1/player_profiles/exists/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-ui/index.html").permitAll()
                         .requestMatchers("/api/v1/battles", "/api/v1/cards", "/api/v1/goals", "/api/v1/player_cards", "/api/v1/player_profiles", "/api/v1/sessions", "/api/v1/snapshots", "/api/v1/users", "/api/v1/arenas", "/api/v1/clans", "/api/v1/decks", "/api/v1/player_entities", "/api/v1/seasons", "/api/v1/league_stadistics", "/api/v1/metrics", "/api/v1/active_goals", "/api/v1/most_advanced", "/api/v1/streaks", "/api/v1/winrates", "/api/v1/analytics").hasAnyRole("USER")
                         .anyRequest().authenticated()
