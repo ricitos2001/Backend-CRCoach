@@ -3,7 +3,6 @@ package org.example.backendcrcoach.mappers;
 import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
 import org.example.backendcrcoach.domain.dto.DeckResponseDTO;
 import org.example.backendcrcoach.domain.entities.Deck;
-import org.example.backendcrcoach.domain.entities.PlayerCard;
 
 import java.util.List;
 
@@ -23,14 +22,14 @@ public class DeckMapper {
 
     public static DeckResponseDTO toDTO(Deck deck) {
         // Copiar la lista a una colección inmodificable para desligarla de la implementación de Hibernate
-        List<PlayerCard> playerCards = null;
+        java.util.List<?> playerCards = null;
         if (deck.getPlayerCards() != null) {
-            playerCards = List.copyOf(deck.getPlayerCards());
+            playerCards = java.util.List.copyOf(deck.getPlayerCards());
         }
         return new DeckResponseDTO(
                 deck.getId(),
                 deck.getArchetype(),
-                playerCards
+                (java.util.List) playerCards
         );
     }
 }
