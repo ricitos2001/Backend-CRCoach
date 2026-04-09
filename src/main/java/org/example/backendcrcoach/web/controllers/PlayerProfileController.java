@@ -59,5 +59,12 @@ public class PlayerProfileController {
         PlayerProfileResponseDTO playerProfile = playerProfileService.getPlayer(tag);
         return ResponseEntity.ok(playerProfile);
     }
+
+    @Operation(summary = "Comprobar existencia de tag", description = "Comprueba si un tag existe localmente o en la API de Clash Royale.")
+    @GetMapping("/exists/{tag}")
+    public ResponseEntity<Boolean> existsTag(@PathVariable String tag) {
+        boolean exists = playerProfileService.existsLocallyOrInApi(tag);
+        return ResponseEntity.ok(exists);
+    }
 }
 

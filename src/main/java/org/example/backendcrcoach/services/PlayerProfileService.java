@@ -324,6 +324,21 @@ public class PlayerProfileService {
         return PlayerProfileMapper.toDTO(savedProfile);
     }
 
+    public boolean existsLocallyOrInApi(String playerTag) {
+        if (playerTag == null || playerTag.isBlank()) return false;
+        String rawTag = playerTag.startsWith("#") ? playerTag : "#" + playerTag;
+        if (playerProfileRepository.existsByTag(playerTag) || playerProfileRepository.existsByTag(rawTag)) {
+            return true;
+        }
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", rawTag);
+        if (responseBody == null || responseBody.isBlank()) return false;
+
+        JsonNode node = objectMapper.readTree(responseBody);
+        if (node == null || node.isNull()) return false;
+        if (node.has("reason")) return false;
+        return node.has("tag") || node.has("name");
+    }
+
     private boolean hasSnapshotRelevantChanges(PlayerProfile existing, PlayerProfile updated) {
         if (existing == null || updated == null) return true;
         if (safeEquals(existing.getTrophies(), updated.getTrophies())) return true;
