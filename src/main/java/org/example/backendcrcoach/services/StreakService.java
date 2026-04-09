@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.services;
 
+import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.StreakRequestDTO;
 import org.example.backendcrcoach.domain.dto.StreakResponseDTO;
 import org.example.backendcrcoach.domain.entities.Streak;
@@ -8,6 +9,7 @@ import org.example.backendcrcoach.repositories.StreakRepository;
 import org.springframework.stereotype.Service;
 
 @Service
+@Transactional
 public class StreakService {
     private final StreakRepository repo;
 

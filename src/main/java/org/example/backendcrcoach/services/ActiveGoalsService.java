@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.services;
 
+import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.ActiveGoalsRequestDTO;
 import org.example.backendcrcoach.domain.dto.ActiveGoalsResponseDTO;
 import org.example.backendcrcoach.domain.entities.ActiveGoals;
@@ -8,6 +9,7 @@ import org.example.backendcrcoach.repositories.ActiveGoalsRepository;
 import org.springframework.stereotype.Service;
 
 @Service
+@Transactional
 public class ActiveGoalsService {
     private final ActiveGoalsRepository repo;
 

@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.services;
 
+import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.BattlesRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattlesResponseDTO;
 import org.example.backendcrcoach.domain.entities.Battles;
@@ -8,6 +9,7 @@ import org.example.backendcrcoach.repositories.BattlesRepository;
 import org.springframework.stereotype.Service;
 
 @Service
+@Transactional
 public class BattlesService {
     private final BattlesRepository repo;
 

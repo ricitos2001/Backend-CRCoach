@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.services;
 
+import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.domain.dto.WinRateRequestDTO;
 import org.example.backendcrcoach.domain.dto.WinRateResponseDTO;
 import org.example.backendcrcoach.domain.entities.WinRate;
@@ -8,6 +9,7 @@ import org.example.backendcrcoach.repositories.WinRateRepository;
 import org.springframework.stereotype.Service;
 
 @Service
+@Transactional
 public class WinRateService {
     private final WinRateRepository repository;
 
