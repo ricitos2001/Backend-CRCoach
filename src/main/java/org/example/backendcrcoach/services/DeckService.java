@@ -34,11 +34,11 @@ public class DeckService {
     }
 
     public List<DeckResponseDTO> listAll() {
-        return deckRepository.findAll().stream().map(DeckMapper::toDTO).collect(Collectors.toList());
+        return deckRepository.findAllWithPlayerCards().stream().map(DeckMapper::toDTO).collect(Collectors.toList());
     }
 
     public Optional<DeckResponseDTO> findById(Long id) {
-        return deckRepository.findById(id).map(DeckMapper::toDTO);
+        return deckRepository.findByIdWithPlayerCards(id).map(DeckMapper::toDTO);
     }
 
     // Búsqueda por apiId eliminada (campo external eliminado)
