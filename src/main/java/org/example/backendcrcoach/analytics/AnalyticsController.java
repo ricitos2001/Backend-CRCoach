@@ -33,11 +33,7 @@ public class AnalyticsController {
             @RequestParam(required = false) String to,
             @RequestParam(required = false) Integer minBattles
     ) {
-        String normalizedTag = tag;
-        if (normalizedTag != null && !normalizedTag.startsWith("#")) {
-            normalizedTag = "#" + normalizedTag;
-        }
-        WeaknessReportDto report = analyticsService.getWeaknesses(normalizedTag, gameMode, from, to, minBattles);
+        WeaknessReportDto report = analyticsService.getWeaknesses(tag, gameMode, from, to, minBattles);
         // Persistir informe en base de datos
         analyticsService.saveWeaknessReport(report);
         return ResponseEntity.ok(report);
@@ -52,18 +48,12 @@ public class AnalyticsController {
             @RequestParam(required = false) Integer limit,
             @RequestParam(required = false) Integer minAppearances
     ) {
-        String normalizedTag = tag;
-        if (normalizedTag != null && !normalizedTag.startsWith("#")) {
-            normalizedTag = "#" + normalizedTag;
-        }
-        List<ProblematicCardDto> cards = analyticsService.getProblematicCards(normalizedTag, gameMode, from, to, limit, minAppearances);
+        List<ProblematicCardDto> cards = analyticsService.getProblematicCards(tag, gameMode, from, to, limit, minAppearances);
         ProblematicCardsReportDto report = new ProblematicCardsReportDto();
-        report.setPlayerTag(normalizedTag);
-        // compute total losses consistently with service
-        long totalLosses = analyticsService.getTotalLossesForFilter(normalizedTag, gameMode, from, to);
+        report.setPlayerTag(tag);
+        long totalLosses = analyticsService.getTotalLossesForFilter(tag, gameMode, from, to);
         report.setTotalLosses(totalLosses);
         report.setProblematicCards(cards);
-        // Persistir informe en base de datos
         analyticsService.saveProblematicCardsReport(report);
         return ResponseEntity.ok(report);
     }
@@ -76,11 +66,7 @@ public class AnalyticsController {
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to
     ) {
-        String normalizedTag = tag;
-        if (normalizedTag != null && !normalizedTag.startsWith("#")) {
-            normalizedTag = "#" + normalizedTag;
-        }
-        PlayerSummaryDto summary = analyticsService.getPlayerSummary(normalizedTag, gameMode, from, to);
+        PlayerSummaryDto summary = analyticsService.getPlayerSummary(tag, gameMode, from, to);
         // Persistir resumen en base de datos
         analyticsService.savePlayerSummary(summary);
         return ResponseEntity.ok(summary);

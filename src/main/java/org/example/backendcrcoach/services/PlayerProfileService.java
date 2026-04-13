@@ -198,7 +198,7 @@ public class PlayerProfileService {
     }
 
     public PlayerProfileResponseDTO getPlayer(String playerTag) {
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", "#" + playerTag);
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTag);
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener el perfil del jugador con tag: " + playerTag);
         }
