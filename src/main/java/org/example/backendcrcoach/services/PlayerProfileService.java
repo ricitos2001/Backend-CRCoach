@@ -13,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.example.backendcrcoach.config.WebClientHelper;
 import org.springframework.web.bind.annotation.RequestBody;
 import tools.jackson.databind.JsonNode;
@@ -59,7 +61,9 @@ public class PlayerProfileService {
         this.snapshotService = snapshotService;
         this.webClient = builder
                 .baseUrl(API_URL)
-                .defaultHeader("Authorization", "Bearer " + API_KEY)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + API_KEY)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.USER_AGENT, "CRCoach/Backend-CRCoach")
                 .build();
         this.battleService = battleService;
         this.playerCardService = playerCardService;

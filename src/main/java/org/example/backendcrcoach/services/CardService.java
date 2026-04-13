@@ -11,6 +11,8 @@ import org.example.backendcrcoach.repositories.PlayerProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.example.backendcrcoach.config.WebClientHelper;
@@ -37,7 +39,12 @@ public class CardService {
                        @Value("${clash.royale.api.key}") String API_KEY,
                        WebClientHelper webClientHelper) {
         this.cardRepository = cardRepository;
-        this.webClient = builder.baseUrl(API_URL).defaultHeader("Authorization", "Bearer " + API_KEY).build();
+        this.webClient = builder
+                .baseUrl(API_URL)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + API_KEY)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.USER_AGENT, "CRCoach/Backend-CRCoach")
+                .build();
         this.webClientHelper = webClientHelper;
     }
 

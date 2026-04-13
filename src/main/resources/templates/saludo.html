@@ -12,7 +12,7 @@
 </head>
 <body>
 <div class="container">
-    <div class="header">Hola <span th:text="${user.name ?: user.username ?: user.email}">Usuario</span>,</div>
+    <div class="header">Hola <span th:text="${user?.name ?: user?.username ?. user?.email}">Usuario</span>,</div>
 
     <p>Gracias por registrarte en <strong>MemoWorks</strong>. Estamos encantados de tenerte con nosotros.</p>
 

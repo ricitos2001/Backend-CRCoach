@@ -4,6 +4,8 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.example.backendcrcoach.config.WebClientHelper;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
@@ -61,8 +63,9 @@ public class BattleService {
         this.playerEntityRepository = playerEntityRepository;
         this.webClient = builder
                 .baseUrl(API_URL)
-                .defaultHeader("Authorization", "Bearer " + API_KEY)
-                .build();
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + API_KEY)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.USER_AGENT, "CRCoach/Backend-CRCoach")                .build();
         this.arenaService = arenaService;
         this.clanService = clanService;
         this.gameModeService = gameModeService;
