@@ -137,7 +137,8 @@ public class BattleService {
      * Devuelve el número de batallas importadas.
      */
     public int importBattlesForPlayer(String playerTag) {
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", playerTag);
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", formatTag(playerTag));
+
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);
         }
@@ -258,6 +259,11 @@ public class BattleService {
     private String normalizeTag(String rawTag) {
         if (rawTag == null || rawTag.isBlank()) return rawTag;
         return rawTag.startsWith(TAG_PREFIX) ? rawTag : TAG_PREFIX + rawTag;
+    }
+
+    private String formatTag(String tagWithoutHash) {
+        if (tagWithoutHash == null) return null;
+        return tagWithoutHash.startsWith(TAG_PREFIX) ? tagWithoutHash : TAG_PREFIX + tagWithoutHash;
     }
 
     private String readText(JsonNode json, String field) {

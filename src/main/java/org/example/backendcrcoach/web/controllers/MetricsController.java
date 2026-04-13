@@ -18,8 +18,15 @@ public class MetricsController {
 
     @GetMapping("/player/{tag}/summary")
     @Operation(summary = "Resumen de métricas del jugador para dashboard")
-    public ResponseEntity<MetricResponseDTO> getPlayerSummary(@PathVariable("tag") String tag, @RequestParam(value = "battles", required = false) Integer battles) {
-        MetricResponseDTO dto = metricsService.getPlayerSummary(tag, battles);
+    public ResponseEntity<MetricResponseDTO> getPlayerSummary(@PathVariable("tag") String tag,
+                                                               @RequestParam(value = "battles", required = false) Integer battles) {
+        // Normalizar el tag: aceptar tanto con '#' como sin él
+        String normalizedTag = tag;
+        if (normalizedTag != null && !normalizedTag.startsWith("#")) {
+            normalizedTag = "#" + normalizedTag;
+        }
+
+        MetricResponseDTO dto = metricsService.getPlayerSummary(normalizedTag, battles);
         if (dto == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(dto);
     }
