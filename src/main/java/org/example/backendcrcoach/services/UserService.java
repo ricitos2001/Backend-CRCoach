@@ -254,15 +254,14 @@ public class UserService {
     public void bindPlayerTagToCurrentUser(String tag) {
         // 1) Obtener el usuario autenticado actual
         User usuario = obtenerMiPerfil();
-        String normalizedTag = normalizeTag(tag);
 
         // 2) Verificar que el tag no esté ya vinculado a otra cuenta
-        if (userRepository.existsByPlayerTagAndIdNot(normalizedTag, usuario.getId())) {
+        if (userRepository.existsByPlayerTagAndIdNot(tag, usuario.getId())) {
             throw new IllegalArgumentException("El playerTag ya está vinculado a otra cuenta.");
         }
 
         // 3) Obtener o crear el perfil del jugador
-        PlayerProfile profile = obtenerOCrearPerfilJugador(normalizedTag);
+        PlayerProfile profile = obtenerOCrearPerfilJugador(tag);
 
         // 4) Vincular el tag al usuario
         usuario.setPlayerTag(profile.getTag());
@@ -316,15 +315,6 @@ public class UserService {
         playerProfileService.getPlayer(normalizedTag.substring(1)); // Remover # para la API
 
         // Ahora buscar en BD después de guardar desde API
-        return playerProfileRepository.findByTag(normalizedTag)
-                .orElseThrow(() -> new IllegalArgumentException("No se pudo obtener ni almacenar el perfil del jugador con tag: " + normalizedTag));
-    }
-
-    private String normalizeTag(String tag) {
-        if (tag == null || tag.isBlank()) {
-            throw new IllegalArgumentException("El playerTag no puede estar vacío.");
-        }
-        String normalized = tag.trim().toUpperCase();
-        return normalized.startsWith("#") ? normalized : "#" + normalized;
+        return playerProfileRepository.findByTag(normalizedTag).orElseThrow(() -> new IllegalArgumentException("No se pudo obtener ni almacenar el perfil del jugador con tag: " + normalizedTag));
     }
 }

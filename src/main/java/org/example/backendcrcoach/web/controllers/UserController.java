@@ -6,7 +6,6 @@ import jakarta.validation.Valid;
 import org.example.backendcrcoach.domain.dto.UserRequestDTO;
 import org.example.backendcrcoach.domain.dto.UserResponseDTO;
 import org.example.backendcrcoach.domain.entities.User;
-import org.example.backendcrcoach.scheduling.UserSchedulingService;
 import org.example.backendcrcoach.services.UserService;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -31,11 +30,9 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
-    private final UserSchedulingService userSchedulingService;
 
-    public UserController(UserService userService, UserSchedulingService userSchedulingService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.userSchedulingService = userSchedulingService;
     }
 
     @GetMapping
@@ -114,15 +111,7 @@ public class UserController {
     @Operation(summary = "Vincular perfil de Clash Royale", description = "Comprueba el tag en Supercell, lo guarda en la BD y vincula ese perfil al usuario autenticado.")
     public ResponseEntity<Map<String, String>> vincularPerfilClash(@PathVariable(name = "tag") String tag) {
         userService.bindPlayerTagToCurrentUser(tag);
-        // Iniciar scheduling para el usuario actual si corresponde
-        try {
-            var usuario = userService.obtenerMiPerfil();
-            if (usuario != null && usuario.getPlayerTag() != null && !usuario.getPlayerTag().isBlank()) {
-                userSchedulingService.startForCurrentUser(usuario.getId(), 300000L);
-            }
-        } catch (Exception ignored) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al iniciar la sincronización programada para el usuario", ignored);
-        }
+        // Antes se intentaba iniciar una tarea programada para el usuario; esa funcionalidad ha sido eliminada.
         return ResponseEntity.ok(Map.of("message", "Perfil de Clash Royale vinculado correctamente."));
     }
 
@@ -131,13 +120,8 @@ public class UserController {
     @Operation(summary = "Vincular perfil de Clash Royale", description = "Comprueba el tag en Supercell, lo guarda en la BD y vincula ese perfil al usuario autenticado.")
     public ResponseEntity<Map<String, String>> desvincularPerfilClash(@PathVariable(name = "id") Long id) {
         userService.unbindPlayerTagFromUser(id);
-        // Detener scheduling para el usuario
-        try {
-            userSchedulingService.stopForCurrentUser(id);
-        } catch (Exception ignored) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al detener la sincronización programada para el usuario", ignored);
-        }
-        return ResponseEntity.ok(Map.of("message", "Perfil de Clash Royale vinculado correctamente."));
+        // Antes se intentaba detener una tarea programada para el usuario; esa funcionalidad ha sido eliminada.
+        return ResponseEntity.ok(Map.of("message", "Perfil de Clash Royale desvinculado correctamente."));
     }
 
     @PostMapping("/{id}/avatar")

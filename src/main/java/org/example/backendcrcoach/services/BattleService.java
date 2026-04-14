@@ -35,7 +35,6 @@ public class BattleService {
     private static final Logger log = LoggerFactory.getLogger(BattleService.class);
 
     private final BattleRepository battleRepository;
-    private final PlayerProfileRepository playerProfileRepository;
     private final PlayerEntityRepository playerEntityRepository;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -59,7 +58,6 @@ public class BattleService {
             DeckService deckService,
             ApplicationContext applicationContext) {
         this.battleRepository = battleRepository;
-        this.playerProfileRepository = playerProfileRepository;
         this.playerEntityRepository = playerEntityRepository;
         this.webClient = builder
                 .baseUrl(API_URL)
@@ -79,8 +77,12 @@ public class BattleService {
         try {
             // Call through proxy to ensure transactional boundaries are applied to the import
             BattleService self = applicationContext.getBean(BattleService.class);
-            int imported = self.importBattlesForPlayer(playerTag);
-            log.info("Imported {} battles for player {} (async)", imported, playerTag);
+            BattleResponseDTO saved = self.importBattlesForPlayer(playerTag);
+            if (saved != null) {
+                log.info("Imported battles for player {} (async). Last saved battle id={}", playerTag, saved.getId());
+            } else {
+                log.info("No new battles imported for player {} (async)", playerTag);
+            }
         } catch (Exception e) {
             log.error("Error importing battles for player {} asynchronously: {}", playerTag, e.getMessage(), e);
         }
@@ -137,37 +139,34 @@ public class BattleService {
     /**
      * Importa batallas de la API de Clash Royale para un jugador (tag sin '#').
      * Evita duplicados basándose en el campo battleTime.
-     * Devuelve el número de batallas importadas.
+     * Devuelve el DTO de la última batalla guardada (o null si no se importó ninguna).
      */
-    public int importBattlesForPlayer(String playerTag) {
+    public BattleResponseDTO importBattlesForPlayer(String playerTag) {
         String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", formatTag(playerTag));
-
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);
         }
-
         JsonNode battlesJson;
         try {
             battlesJson = objectMapper.readTree(responseBody);
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Respuesta invalida al obtener batallas para el jugador con tag: " + playerTag, e);
         }
-
         if (!battlesJson.isArray()) {
             throw new IllegalArgumentException("Formato inesperado: se esperaba un array de batallas");
         }
 
-        int imported = 0;
+        Battle savedBattle = null;
         for (JsonNode node : battlesJson) {
             Battle battle = mapApiResponseToEntity(node);
             // Evitar duplicados basándose en el campo 'battleTime' (más fiable que comparar JSON)
             if (battle.getBattleTime() == null) continue;
             if (battleRepository.existsByBattleTime(battle.getBattleTime())) continue;
-            battleRepository.save(battle);
-            imported++;
+            savedBattle = battleRepository.save(battle);
         }
 
-        return imported;
+        if (savedBattle == null) return null;
+        return BattleMapper.toDTO(savedBattle);
     }
 
     private Battle mapApiResponseToEntity(JsonNode json) {
@@ -183,9 +182,6 @@ public class BattleService {
         battle.setGameMode(gameModeService.resolveGameModeFromNode(json.get("gameMode")));
         battle.setTeam(resolvePlayerEntityFromArray(json.get("team")));
         battle.setOpponent(resolvePlayerEntityFromArray(json.get("opponent")));
-
-        // Note: do not set battleTimeTs (field removed). We keep battleTime as the source of truth.
-
         return battle;
     }
 

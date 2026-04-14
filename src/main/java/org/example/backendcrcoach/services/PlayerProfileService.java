@@ -206,37 +206,19 @@ public class PlayerProfileService {
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener el perfil del jugador con tag: " + playerTag);
         }
-
         JsonNode playerJson;
         try {
             playerJson = objectMapper.readTree(responseBody);
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Respuesta invalida al obtener el perfil del jugador con tag: " + playerTag, e);
         }
-
         PlayerProfile playerProfile = mapApiResponseToEntity(playerJson);
-
-        // Importar batallas en segundo plano (no bloquear la petición HTTP del cliente)
-        CompletableFuture.runAsync(() -> {
-            try {
-                int importedBattles = battleService.importBattlesForPlayer(playerTag);
-                if (importedBattles > 0) {
-                    // Si se importaron batallas nuevas, crear un snapshot basado en el perfil
-                    // reconsultado desde la BBDD para asegurarnos de tener una entidad gestionada.
-                    playerProfileRepository.findByTag("#" + playerTag).ifPresent(snapshotService::saveSnapshot);
-                }
-            } catch (Exception e) {
-                // no interrumpir el flujo por fallos en batallas
-            }
-        });
-
         PlayerProfile savedProfile;
         PlayerProfile existing = playerProfileRepository.findByTag(playerProfile.getTag()).orElse(null);
         boolean statsChanged;
         if (existing != null) {
             // Determinar si las estadísticas relevantes cambiaron
             statsChanged = hasSnapshotRelevantChanges(existing, playerProfile);
-
             // Actualizar campos del perfil existente con la información nueva
             existing.setName(playerProfile.getName());
             existing.setExpLevel(playerProfile.getExpLevel());
@@ -318,7 +300,6 @@ public class PlayerProfileService {
             existing.setLastPathOfLegendSeasonResult(playerProfile.getLastPathOfLegendSeasonResult());
             existing.setBestPathOfLegendSeasonResult(playerProfile.getBestPathOfLegendSeasonResult());
             existing.setProgress(playerProfile.getProgress());
-
             // Persistir o asociar mazos antes de guardar el perfil para evitar referencias transientes
             existing.setCurrentDeck(deckService.persistDeckIfNeeded(existing.getCurrentDeck()));
             existing.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(existing.getCurrentDeckSupportCards()));
@@ -346,16 +327,13 @@ public class PlayerProfileService {
             }
             statsChanged = true; // nuevo perfil -> snapshot
         }
-
         // Crear snapshot si las estadísticas cambiaron.
         // La importación asíncrona de batallas se encarga de crear snapshot si fue necesario.
         if (statsChanged) {
             snapshotService.saveSnapshot(savedProfile);
         }
-
         // Guardar/actualizar playerCards siempre (pueden cambiar aunque estadísticas no)
         playerCardService.saveCardsFromProfile(savedProfile);
-
         return PlayerProfileMapper.toDTO(savedProfile);
     }
 
