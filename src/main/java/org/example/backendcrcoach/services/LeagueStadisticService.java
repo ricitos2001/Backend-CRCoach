@@ -15,6 +15,7 @@ import org.example.backendcrcoach.repositories.LeagueStadisticRepository;
 import org.example.backendcrcoach.repositories.SeasonRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -54,8 +55,8 @@ public class LeagueStadisticService {
                 SeasonRequestDTO dto = objectMapper.convertValue(currentNode, SeasonRequestDTO.class);
                 // Si no viene seasonId para currentSeason (API externa puede omitirlo),
                 // generar un seasonId temporal para poder persistir el registro cuando tengamos trophies.
-                if ((dto.getSeasonId() == null || dto.getSeasonId().isBlank()) && dto.getTrophies() != null) {
-                    dto.setSeasonId("current-" + System.currentTimeMillis());
+                if (dto.getSeasonId() == null || dto.getSeasonId().isBlank()) {
+                    dto.setSeasonId(YearMonth.now().toString());
                 }
                 current = SeasonMapper.toEntity(dto);
                 current = resolveSeason(current);
