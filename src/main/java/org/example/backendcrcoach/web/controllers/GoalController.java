@@ -62,9 +62,8 @@ public class GoalController {
     }
 
     @Operation(summary = "Listar objetivos por usuario", description = "Obtiene la lista de objetivos asociados al email del usuario. Se puede filtrar por estado opcionalmente (IN_PROGRESS, COMPLETED, FAILED).")
-    @GetMapping("/user")
-    public ResponseEntity<List<GoalResponseDTO>> listByUserEmail(@RequestParam(name = "email") String email,
-                                                                 @RequestParam(name = "status", required = false) String status) {
+    @GetMapping("/user/{email}")
+    public ResponseEntity<List<GoalResponseDTO>> listByUserEmail(@PathVariable @RequestParam(name = "email") String email, @RequestParam(name = "status", required = false) String status) {
         List<GoalResponseDTO> goals;
         if (status == null || status.isBlank()) {
             goals = goalService.listByUserEmail(email);
