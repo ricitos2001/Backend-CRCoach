@@ -11,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
+import java.util.List;
+
 @RestController
 @RequestMapping(value = "/api/v1/snapshots", produces = MediaType.APPLICATION_JSON_VALUE)
 public class SnapshotController {
@@ -46,6 +48,21 @@ public class SnapshotController {
         Page<Snapshot> snapshots = snapshotService.getSnapshotsByDateRange(playerTag, from, to, pageable);
         Page<SnapshotResponseDTO> dtoPage = snapshots.map(SnapshotMapper::toDTO);
         return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping("/{playerTag}/latest")
+    @Operation(summary = "Obtener último snapshot por tag de jugador", description = "Obtiene la última instantánea tomada para un jugador dado su tag.")
+    public ResponseEntity<SnapshotResponseDTO> getLatestSnapshotByPlayerTag(@PathVariable String playerTag) {
+        return snapshotService.getLatestSnapshotByPlayerTag(playerTag)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/mySnapshots/{playerTag}")
+    @Operation(summary = "Obtener historial de snapshots por tag de jugador", description = "Obtiene el registro completo de snapshots (orden descendente) para un jugador.")
+    public ResponseEntity<List<SnapshotResponseDTO>> getSnapshotHistoryByPlayerTag(@PathVariable String playerTag) {
+        List<SnapshotResponseDTO> history = snapshotService.getSnapshotHistoryByPlayerTag(playerTag);
+        return ResponseEntity.ok(history);
     }
     @DeleteMapping("/cleanup")
     @Operation(summary = "Eliminar snapshots antiguas", description = "Elimina todas las instantáneas más antiguas que X días.")
