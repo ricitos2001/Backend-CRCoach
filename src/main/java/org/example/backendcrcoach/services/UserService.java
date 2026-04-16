@@ -101,7 +101,6 @@ public class UserService {
 
     public UserResponseDTO update(Long id, @RequestBody UserRequestDTO dto) {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
-
         // validar unicidad de username y email excluyendo al propio usuario
         if (dto.getUsername() != null && userRepository.existsByUsernameAndIdNot(dto.getUsername(), id)) {
             throw new DuplicatedUserException(dto.getUsername());
@@ -109,14 +108,11 @@ public class UserService {
         if (dto.getEmail() != null && userRepository.existsByEmailAndIdNot(dto.getEmail(), id)) {
             throw new DuplicatedUserException(dto.getEmail());
         }
-
         updateBasicFields(dto, user);
-
         // si se provee contraseña, codificar antes de guardar
         if (dto.getPasswordHash() != null) {
             user.setPasswordHash(passwordEncoder.encode(dto.getPasswordHash()));
         }
-
         User updatedUser = userRepository.save(user);
         return UserMapper.toDTO(updatedUser);
     }
@@ -130,7 +126,7 @@ public class UserService {
         Optional.ofNullable(user.getAvatarUrl()).ifPresent(updatedUser::setAvatarUrl);
         Optional.ofNullable(user.getRole()).ifPresent(updatedUser::setRole);
         Optional.ofNullable(user.getCreatedAt()).ifPresent(updatedUser::setCreatedAt);
-        // El perfil de Clash se vincula en un endpoint dedicado tras registro.
+        Optional.ofNullable(user.getPlayerTag()).ifPresent(updatedUser::setPlayerTag);
         Optional.ofNullable(user.getEnabled()).ifPresent(updatedUser::setEnabled);
     }
 

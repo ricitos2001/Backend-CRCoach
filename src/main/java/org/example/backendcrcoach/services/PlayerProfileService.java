@@ -38,7 +38,6 @@ public class PlayerProfileService {
     private final SnapshotService snapshotService;
     private final PlayerCardService playerCardService;
     private final WebClient webClient;
-    private final BattleService battleService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArenaService arenaService;
     private final ClanService clanService;
@@ -52,7 +51,6 @@ public class PlayerProfileService {
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
-            BattleService battleService,
             PlayerCardService playerCardService,
             ArenaService arenaService,
             ClanService clanService,
@@ -65,7 +63,6 @@ public class PlayerProfileService {
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.USER_AGENT, "CRCoach/Backend-CRCoach")
                 .build();
-        this.battleService = battleService;
         this.playerCardService = playerCardService;
         this.arenaService = arenaService;
         this.clanService = clanService;
