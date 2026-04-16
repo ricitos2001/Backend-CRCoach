@@ -39,21 +39,15 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final FileService fileService;
     private final EmailService emailService;
-    private final PlayerProfileService playerProfileService;
-    private final PlayerProfileRepository playerProfileRepository;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        FileService fileService,
-                       EmailService emailService,
-                       PlayerProfileService playerProfileService,
-                       PlayerProfileRepository playerProfileRepository) {
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileService = fileService;
         this.emailService = emailService;
-        this.playerProfileService = playerProfileService;
-        this.playerProfileRepository = playerProfileRepository;
     }
 
     public Page<UserResponseDTO> list(Pageable pageable) {
@@ -90,25 +84,18 @@ public class UserService {
     public UserResponseDTO create(UserRequestDTO dto) {
         String username = dto.getUsername() != null ? dto.getUsername().toLowerCase() : null;
         String email = dto.getEmail() != null ? dto.getEmail().toLowerCase() : null;
-
         if (username != null && userRepository.existsByUsername(username)) {
             throw new DuplicatedUserException(username);
         }
         if (email != null && userRepository.findByEmail(email).isPresent()) {
             throw new DuplicatedUserException(email);
         }
-
         User user = UserMapper.toEntity(dto);
         if (user.getUsername() != null) user.setUsername(user.getUsername().toLowerCase());
         if (user.getEmail() != null) user.setEmail(user.getEmail().toLowerCase());
-        user.setPlayerTag(null);
         if (dto.getPasswordHash() != null) user.setPasswordHash(passwordEncoder.encode(dto.getPasswordHash()));
-
         User savedUser = userRepository.save(user);
-
-        // Enviar correo de bienvenida/registro (se encapsula la lógica en un método)
         sendWelcomeEmail(savedUser);
-
         return UserMapper.toDTO(savedUser);
     }
 
@@ -167,7 +154,6 @@ public class UserService {
             User user = UserMapper.toEntity(dto);
             user.setPasswordHash(passwordEncoder.encode(dto.getPasswordHash()));
             User savedUser = userRepository.save(user);
-            // enviar correo de registro
             sendWelcomeEmail(savedUser);
             return savedUser;
         }

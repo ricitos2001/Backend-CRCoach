@@ -32,8 +32,7 @@ public class User {
     private Role role;
     @Column(nullable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "player_tag", unique = true)
+    @Column(name = "player_tag", unique = true, nullable = false)
     private String playerTag;
 
     @Column(nullable = false)
