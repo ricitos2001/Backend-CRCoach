@@ -33,6 +33,14 @@ public class BattleController {
         return ResponseEntity.ok(battleService.getAllBattles());
     }
 
+    @Operation(summary = "Obtener batallas por tag de jugador", description = "Recupera las batallas donde aparece el jugador (como team u opponent).")
+    @GetMapping("/myBattles/{playerTag}")
+    public ResponseEntity<List<BattleResponseDTO>> getByPlayerTag(@PathVariable String playerTag,
+                                                                 @RequestParam(required = false) Integer limit) {
+        List<BattleResponseDTO> battles = battleService.getBattlesByPlayerTag(playerTag, limit);
+        return ResponseEntity.ok(battles);
+    }
+
     @Operation(summary = "Obtener batalla por ID", description = "Recupera los detalles de una batalla dada su ID.")
     @GetMapping("/{id}")
     public ResponseEntity<BattleResponseDTO> getById(@PathVariable Long id) {

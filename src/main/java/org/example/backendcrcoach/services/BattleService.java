@@ -137,6 +137,20 @@ public class BattleService {
     }
 
     /**
+     * Obtiene el registro de batallas donde aparece el jugador identificado por su tag
+     * (puede aparecer en team u opponent). Devuelve las batallas más recientes primero.
+     * Si limit es null o <=0 se usa un valor por defecto de 50.
+     */
+    public List<BattleResponseDTO> getBattlesByPlayerTag(String playerTag, Integer limit) {
+        if (playerTag == null || playerTag.isBlank()) return List.of();
+        String normalized = normalizeTag(playerTag);
+        int pageSize = (limit == null || limit <= 0) ? 50 : limit;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, pageSize);
+        List<Battle> battles = battleRepository.findByTeamTagOrOpponentTagOrderByBattleTimeDesc(normalized, normalized, pageable);
+        return battles.stream().map(BattleMapper::toDTO).collect(Collectors.toList());
+    }
+
+    /**
      * Importa batallas de la API de Clash Royale para un jugador (tag sin '#').
      * Evita duplicados basándose en el campo battleTime.
      * Devuelve el DTO de la última batalla guardada (o null si no se importó ninguna).
