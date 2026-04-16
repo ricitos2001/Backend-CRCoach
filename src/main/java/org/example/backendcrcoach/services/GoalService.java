@@ -14,6 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.example.backendcrcoach.domain.enums.GoalStatus;
 
 @Service
 @Transactional
@@ -81,5 +84,21 @@ public class GoalService {
     public void delete(Long id) {
         if (!goalRepository.existsById(id)) throw new GoalNotFoundException(id);
         goalRepository.deleteById(id);
+    }
+
+    /**
+     * Lista todos los objetivos de un usuario identificado por su email.
+     */
+    public List<GoalResponseDTO> listByUserEmail(String userEmail) {
+        List<Goal> goals = goalRepository.findByUserEmail(userEmail);
+        return goals.stream().map(GoalMapper::toDTO).collect(Collectors.toList());
+    }
+
+    /**
+     * Lista los objetivos de un usuario filtrando por estado.
+     */
+    public List<GoalResponseDTO> listByUserEmailAndStatus(String userEmail, GoalStatus status) {
+        List<Goal> goals = goalRepository.findByUserEmailAndStatus(userEmail, status);
+        return goals.stream().map(GoalMapper::toDTO).collect(Collectors.toList());
     }
 }

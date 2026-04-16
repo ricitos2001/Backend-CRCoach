@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
 import io.swagger.v3.oas.annotations.Operation;
+import org.example.backendcrcoach.domain.enums.GoalStatus;
+import java.util.List;
 
 
 @RestController
@@ -57,5 +59,24 @@ public class GoalController {
     public ResponseEntity<Void> delete(@PathVariable(name = "id") Long id) {
         goalService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Listar objetivos por usuario", description = "Obtiene la lista de objetivos asociados al email del usuario. Se puede filtrar por estado opcionalmente (IN_PROGRESS, COMPLETED, FAILED).")
+    @GetMapping("/user")
+    public ResponseEntity<List<GoalResponseDTO>> listByUserEmail(@RequestParam(name = "email") String email,
+                                                                 @RequestParam(name = "status", required = false) String status) {
+        List<GoalResponseDTO> goals;
+        if (status == null || status.isBlank()) {
+            goals = goalService.listByUserEmail(email);
+        } else {
+            GoalStatus gs;
+            try {
+                gs = GoalStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().build();
+            }
+            goals = goalService.listByUserEmailAndStatus(email, gs);
+        }
+        return ResponseEntity.ok(goals);
     }
 }

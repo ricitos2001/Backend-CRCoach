@@ -11,4 +11,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     Session getSessionById(Long id);
 
     Boolean existsByTitleAndIdNot(String title, Long id);
+
+    // Obtener todas las sesiones asociadas al email del usuario
+    java.util.List<Session> findByUserEmail(String userEmail);
 }

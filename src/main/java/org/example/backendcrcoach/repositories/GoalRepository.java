@@ -16,4 +16,7 @@ public interface GoalRepository extends JpaRepository<Goal, Long> {
     Boolean existsByTitleAndIdNot(String title, Long id);
 
     List<Goal> findByUserEmailAndStatus(String userEmail, GoalStatus status);
+
+    // Obtener todos los objetivos asociados al email del usuario (sin filtrar por estado)
+    List<Goal> findByUserEmail(String userEmail);
 }
