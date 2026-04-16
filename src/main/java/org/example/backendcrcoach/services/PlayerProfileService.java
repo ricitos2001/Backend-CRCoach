@@ -338,18 +338,18 @@ public class PlayerProfileService {
     }
 
     public boolean existsLocallyOrInApi(String playerTag) {
-        if (playerTag == null || playerTag.isBlank()) return false;
-        String rawTag = playerTag.startsWith("#") ? playerTag : "#" + playerTag;
-        if (playerProfileRepository.existsByTag(playerTag) || playerProfileRepository.existsByTag(rawTag)) {
-            return true;
-        }
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", rawTag);
+        if (existsByTag(playerTag)) {return true;}
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTag);
         if (responseBody == null || responseBody.isBlank()) return false;
 
         JsonNode node = objectMapper.readTree(responseBody);
         if (node == null || node.isNull()) return false;
         if (node.has("reason")) return false;
         return node.has("tag") || node.has("name");
+    }
+
+    private boolean existsByTag(String tag) {
+        return playerProfileRepository.findByTag(tag).isPresent();
     }
 
     private boolean hasSnapshotRelevantChanges(PlayerProfile existing, PlayerProfile updated) {
