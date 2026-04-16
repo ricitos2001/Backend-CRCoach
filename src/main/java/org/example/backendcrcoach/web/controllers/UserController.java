@@ -106,24 +106,6 @@ public class UserController {
         return ResponseEntity.ok(usuario);
     }
 
-    @PostMapping("/me/player-profile/link/{tag}")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Vincular perfil de Clash Royale", description = "Comprueba el tag en Supercell, lo guarda en la BD y vincula ese perfil al usuario autenticado.")
-    public ResponseEntity<Map<String, String>> vincularPerfilClash(@PathVariable(name = "tag") String tag) {
-        userService.bindPlayerTagToCurrentUser(tag);
-        // Antes se intentaba iniciar una tarea programada para el usuario; esa funcionalidad ha sido eliminada.
-        return ResponseEntity.ok(Map.of("message", "Perfil de Clash Royale vinculado correctamente."));
-    }
-
-    @PostMapping("/me/player-profile/unlink/{id}")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Vincular perfil de Clash Royale", description = "Comprueba el tag en Supercell, lo guarda en la BD y vincula ese perfil al usuario autenticado.")
-    public ResponseEntity<Map<String, String>> desvincularPerfilClash(@PathVariable(name = "id") Long id) {
-        userService.unbindPlayerTagFromUser(id);
-        // Antes se intentaba detener una tarea programada para el usuario; esa funcionalidad ha sido eliminada.
-        return ResponseEntity.ok(Map.of("message", "Perfil de Clash Royale desvinculado correctamente."));
-    }
-
     @PostMapping("/{id}/avatar")
     @Operation(summary = "Cargar avatar de usuario", description = "Carga o actualiza el avatar de un usuario específico utilizando su ID.", parameters = {@Parameter(name = "id", description = "ID del usuario cuyo avatar se va a cargar.")})
     public ResponseEntity<?> cargarAvatar(@PathVariable(name = "id") Long id, @RequestParam("file") MultipartFile file) {

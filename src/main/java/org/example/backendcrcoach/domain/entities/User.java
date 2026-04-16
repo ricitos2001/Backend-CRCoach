@@ -36,10 +36,6 @@ public class User {
     @Column(name = "player_tag", unique = true)
     private String playerTag;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "player_tag", referencedColumnName = "tag", insertable = false, updatable = false)
-    private PlayerProfile playerProfile;
-
     @Column(nullable = false)
     private Boolean enabled;
     @PrePersist

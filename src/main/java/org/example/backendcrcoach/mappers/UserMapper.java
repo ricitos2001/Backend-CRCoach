@@ -15,8 +15,7 @@ public class UserMapper {
         user.setAvatarUrl(dto.getAvatarUrl());
         user.setRole(dto.getRole());
         user.setCreatedAt(dto.getCreatedAt());
-        user.setPlayerTag(null);
-        user.setPlayerProfile(null);
+        user.setPlayerTag(dto.getPlayerTag());
         user.setEnabled(dto.getEnabled());
         return user;
     }

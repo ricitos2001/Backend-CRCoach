@@ -166,9 +166,7 @@ public class UserService {
         } else {
             User user = UserMapper.toEntity(dto);
             user.setPasswordHash(passwordEncoder.encode(dto.getPasswordHash()));
-            user.setPlayerTag(null);
             User savedUser = userRepository.save(user);
-
             // enviar correo de registro
             sendWelcomeEmail(savedUser);
             return savedUser;
@@ -237,44 +235,5 @@ public class UserService {
 
     public User obtenerUsuarioPorId(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(USUARIO_NO_ENCONTRADO_CON + "id " + id));
-    }
-
-    /**
-     * Vincula un tag de Clash Royale al perfil del usuario autenticado.
-     * Esta función:
-     * 1. Obtiene el usuario autenticado actual
-     * 2. Verifica que el tag no esté ya vinculado a otra cuenta
-     * 3. Busca el perfil en la BD, si no existe lo obtiene de la API de Supercell
-     * 4. Vincula correctamente el tag y el perfil al usuario
-     * 5. Guarda los cambios en la BD
-     * 
-     * @param tag El tag del jugador (con o sin #)
-     * @throws IllegalArgumentException si el tag es inválido, ya existe en otra cuenta, o no existe en la API
-     */
-    public void bindPlayerTagToCurrentUser(String tag) {
-        User usuario = obtenerMiPerfil();
-        if (userRepository.existsByPlayerTagAndIdNot(tag, usuario.getId())) {
-            throw new IllegalArgumentException("El playerTag ya está vinculado a otra cuenta.");
-        }
-        usuario.setPlayerTag(tag);
-        userRepository.save(usuario);
-    }
-
-    /**
-     * Desvincula el tag de Clash Royale de un usuario específico por su ID.
-     * 
-     * @param id ID del usuario al que desvinculari el tag
-     * @throws ResourceNotFoundException si el usuario no existe
-     * @throws IllegalArgumentException si el usuario no tiene tag vinculado
-     */
-    public void unbindPlayerTagFromUser(Long id) {
-        User usuario = obtenerUsuarioPorId(id);
-        
-        if (usuario.getPlayerTag() == null || usuario.getPlayerTag().isBlank()) {
-            throw new IllegalArgumentException("El usuario no tiene ningún playerTag vinculado.");
-        }
-
-        usuario.setPlayerTag(null);
-        userRepository.save(usuario);
     }
 }
