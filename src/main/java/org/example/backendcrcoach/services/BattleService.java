@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class BattleService {
-    private static final String TAG_PREFIX = "#";
     private static final Logger log = LoggerFactory.getLogger(BattleService.class);
 
     private final BattleRepository battleRepository;
@@ -91,10 +90,10 @@ public class BattleService {
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
         Battle battle = BattleMapper.toEntity(dto);
         if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
-            playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(battle::setTeam);
+            playerEntityRepository.findByTag(dto.getTeam().getTag()).ifPresent(battle::setTeam);
         }
         if (dto.getOpponent() != null && dto.getOpponent().getTag() != null) {
-            playerEntityRepository.findByTag(normalizeTag(dto.getOpponent().getTag())).ifPresent(battle::setOpponent);
+            playerEntityRepository.findByTag(dto.getOpponent().getTag()).ifPresent(battle::setOpponent);
         }
         Battle saved = battleRepository.save(battle);
         return BattleMapper.toDTO(saved);
@@ -116,13 +115,13 @@ public class BattleService {
             Battle updated = BattleMapper.toEntity(dto);
             updated.setId(existing.getId());
             if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
-                playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(updated::setTeam);
+                playerEntityRepository.findByTag(dto.getTeam().getTag()).ifPresent(updated::setTeam);
             } else {
                 updated.setTeam(existing.getTeam());
             }
 
             if (dto.getOpponent() != null && dto.getOpponent().getTag() != null) {
-                playerEntityRepository.findByTag(normalizeTag(dto.getOpponent().getTag())).ifPresent(updated::setOpponent);
+                playerEntityRepository.findByTag(dto.getOpponent().getTag()).ifPresent(updated::setOpponent);
             } else {
                 updated.setOpponent(existing.getOpponent());
             }
@@ -143,10 +142,9 @@ public class BattleService {
      */
     public List<BattleResponseDTO> getBattlesByPlayerTag(String playerTag, Integer limit) {
         if (playerTag == null || playerTag.isBlank()) return List.of();
-        String normalized = normalizeTag(playerTag);
         int pageSize = (limit == null || limit <= 0) ? 50 : limit;
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, pageSize);
-        List<Battle> battles = battleRepository.findByTeamTagOrOpponentTagOrderByBattleTimeDesc(normalized, normalized, pageable);
+        List<Battle> battles = battleRepository.findByTeamTagOrOpponentTagOrderByBattleTimeDesc(playerTag, playerTag, pageable);
         return battles.stream().map(BattleMapper::toDTO).collect(Collectors.toList());
     }
 
@@ -156,7 +154,7 @@ public class BattleService {
      * Devuelve el DTO de la última batalla guardada (o null si no se importó ninguna).
      */
     public BattleResponseDTO importBattlesForPlayer(String playerTag) {
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", formatTag(playerTag));
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", playerTag);
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);
         }
@@ -206,10 +204,9 @@ public class BattleService {
         String rawTag = readText(node, "tag");
         if (rawTag == null || rawTag.isBlank()) return null;
 
-        String normalizedTag = normalizeTag(rawTag);
-        PlayerEntity entity = playerEntityRepository.findByTag(normalizedTag).orElseGet(PlayerEntity::new);
+        PlayerEntity entity = playerEntityRepository.findByTag(rawTag).orElseGet(PlayerEntity::new);
 
-        entity.setTag(normalizedTag);
+        entity.setTag(rawTag);
         entity.setName(readText(node, "name"));
         entity.setStartingTrophies(readInteger(node, "startingTrophies"));
         entity.setTrophyChange(readInteger(node, "trophyChange"));
@@ -267,16 +264,6 @@ public class BattleService {
         deck.setPlayerCards(cards);
         // El arquetipo se calcula en DeckService al persistir el deck
         return deck;
-    }
-
-    private String normalizeTag(String rawTag) {
-        if (rawTag == null || rawTag.isBlank()) return rawTag;
-        return rawTag.startsWith(TAG_PREFIX) ? rawTag : TAG_PREFIX + rawTag;
-    }
-
-    private String formatTag(String tagWithoutHash) {
-        if (tagWithoutHash == null) return null;
-        return tagWithoutHash.startsWith(TAG_PREFIX) ? tagWithoutHash : TAG_PREFIX + tagWithoutHash;
     }
 
     private String readText(JsonNode json, String field) {
