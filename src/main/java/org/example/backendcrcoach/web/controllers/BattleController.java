@@ -64,7 +64,7 @@ public class BattleController {
         return ResponseEntity.noContent().build();
     }
     @Operation(summary = "Importar batallas de jugador", description = "Importa batallas desde la API externa para un jugador dado su tag.")
-    @PostMapping("/import/{playerTag}")
+    @GetMapping("/import/{playerTag}")
     public ResponseEntity<String> importForPlayer(@PathVariable String playerTag) {
         // Lanzar la importación en segundo plano y devolver 202 Accepted inmediatamente.
         battleService.importBattlesForPlayer(playerTag);
