@@ -67,7 +67,7 @@ public class BattleController {
     @PostMapping("/import/{playerTag}")
     public ResponseEntity<String> importForPlayer(@PathVariable String playerTag) {
         // Lanzar la importación en segundo plano y devolver 202 Accepted inmediatamente.
-        battleService.importBattlesForPlayerAsync(playerTag);
+        battleService.importBattlesForPlayer(playerTag);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body("Import started for player " + playerTag);
     }
 }

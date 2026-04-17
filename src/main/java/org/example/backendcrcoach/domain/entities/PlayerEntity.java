@@ -37,7 +37,7 @@ public class PlayerEntity {
     @Column
     private Integer kingTowerHitPoints;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "player_entity_princess_towers_hit_points", joinColumns = @JoinColumn(name = "player_entity_id"))
     @Column(name = "hit_points")
     @JsonIgnore

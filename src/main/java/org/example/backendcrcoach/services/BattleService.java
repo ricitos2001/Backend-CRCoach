@@ -73,22 +73,6 @@ public class BattleService {
         this.applicationContext = applicationContext;
     }
 
-    @Async("taskExecutor")
-    public void importBattlesForPlayerAsync(String playerTag) {
-        try {
-            // Call through proxy to ensure transactional boundaries are applied to the import
-            BattleService self = applicationContext.getBean(BattleService.class);
-            BattleResponseDTO saved = self.importBattlesForPlayer(playerTag);
-            if (saved != null) {
-                log.info("Imported battles for player {} (async). Last saved battle id={}", playerTag, saved.getId());
-            } else {
-                log.info("No new battles imported for player {} (async)", playerTag);
-            }
-        } catch (Exception e) {
-            log.error("Error importing battles for player {} asynchronously: {}", playerTag, e.getMessage(), e);
-        }
-    }
-
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
         Battle battle = BattleMapper.toEntity(dto);
         if (dto.getTeam() != null && dto.getTeam().getTag() != null) {

@@ -24,7 +24,7 @@ public class Deck {
     private Archetype archetype;
 
     // Cartas del jugador que componen el deck
-    @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     @JoinColumn(name = "deck_id") // crea la columna deck_id en la tabla player_cards
     @JsonIgnore
     private List<PlayerCard> playerCards;
