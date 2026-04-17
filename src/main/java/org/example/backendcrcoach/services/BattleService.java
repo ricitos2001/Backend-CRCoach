@@ -28,6 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -139,7 +140,8 @@ public class BattleService {
      * Evita duplicados basándose en el campo battleTime.
      * Devuelve el DTO de la última batalla guardada (o null si no se importó ninguna).
      */
-    public BattleResponseDTO importBattlesForPlayer(String playerTag) {
+    @Async
+    public void importBattlesForPlayer(String playerTag) {
         String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", playerTag);
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);
@@ -163,8 +165,11 @@ public class BattleService {
             savedBattle = battleRepository.save(battle);
         }
 
-        if (savedBattle == null) return null;
-        return BattleMapper.toDTO(savedBattle);
+        if (savedBattle == null) {
+            CompletableFuture.completedFuture(null);
+            return;
+        }
+        CompletableFuture.completedFuture(BattleMapper.toDTO(savedBattle));
     }
 
     private Battle mapApiResponseToEntity(JsonNode json) {
