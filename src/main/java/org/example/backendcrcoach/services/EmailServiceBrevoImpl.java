@@ -59,10 +59,6 @@ public class EmailServiceBrevoImpl implements EmailService {
         logger.info("Brevo email sender ENABLED. Sender: {} <{}>", senderName, senderEmail);
     }
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
     private boolean isDisabled() {
         return !enabled;
     }
@@ -121,7 +117,8 @@ public class EmailServiceBrevoImpl implements EmailService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("api-key", apiKey);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("api-key", apiKey.trim());
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
@@ -130,7 +127,6 @@ public class EmailServiceBrevoImpl implements EmailService {
             logger.info("Brevo send response: status={}, body={}", response.getStatusCode(), response.getBody());
         } catch (RestClientException e) {
             logger.error("Failed to send email via Brevo to {}: {}", to, e.getMessage());
-            // no relanzar para no romper la lógica principal
         }
     }
 }

@@ -195,7 +195,7 @@ public class BattleService {
         String rawTag = readText(node, "tag");
         if (rawTag == null || rawTag.isBlank()) return null;
 
-        PlayerEntity entity = playerEntityRepository.findByTag(rawTag).orElseGet(PlayerEntity::new);
+        PlayerEntity entity = new PlayerEntity();
 
         entity.setTag(rawTag);
         entity.setName(readText(node, "name"));
