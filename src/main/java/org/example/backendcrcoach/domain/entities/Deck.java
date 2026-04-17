@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.domain.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.backendcrcoach.analytics.Archetype;
@@ -25,6 +26,7 @@ public class Deck {
     // Cartas del jugador que componen el deck
     @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "deck_id") // crea la columna deck_id en la tabla player_cards
+    @JsonIgnore
     private List<PlayerCard> playerCards;
 }
 
