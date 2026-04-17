@@ -1,6 +1,7 @@
 package org.example.backendcrcoach.services;
 
 import jakarta.transaction.Transactional;
+import org.example.backendcrcoach.web.exceptions.DuplicatedUserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -158,11 +159,9 @@ public class BattleService {
 
         Battle savedBattle = null;
         for (JsonNode node : battlesJson) {
-            Battle battle = mapApiResponseToEntity(node);
-            // Evitar duplicados basándose en el campo 'battleTime' (más fiable que comparar JSON)
-            if (battle.getBattleTime() == null) continue;
-            if (battleRepository.existsByBattleTime(battle.getBattleTime())) continue;
-            savedBattle = battleRepository.save(battle);
+            Battle persistedOrExisting = mapApiResponseToEntity(node);
+            if (persistedOrExisting == null) continue;
+            savedBattle = persistedOrExisting;
         }
 
         if (savedBattle == null) {
@@ -173,19 +172,24 @@ public class BattleService {
     }
 
     private Battle mapApiResponseToEntity(JsonNode json) {
+        String battleTime = readText(json, "battleTime");
+        if (battleTime == null) return null;
+        if (battleRepository.existsByBattleTime(battleTime)) {
+            return null;
+        }
+
         Battle battle = new Battle();
         battle.setType(readText(json, "type"));
-        battle.setBattleTime(readText(json, "battleTime"));
+        battle.setBattleTime(battleTime);
         battle.setIsLadderTournament(readBoolean(json, "isLadderTournament"));
         battle.setDeckSelection(readText(json, "deckSelection"));
         battle.setIsHostedMatch(readBoolean(json, "isHostedMatch"));
         battle.setLeagueNumber(readInteger(json, "leagueNumber"));
         battle.setArena(arenaService.resolveArenaFromNode(json.get("arena")));
-        // Resolve gameMode node into persisted GameMode entity (if present)
         battle.setGameMode(gameModeService.resolveGameModeFromNode(json.get("gameMode")));
         battle.setTeam(resolvePlayerEntityFromArray(json.get("team")));
         battle.setOpponent(resolvePlayerEntityFromArray(json.get("opponent")));
-        return battle;
+        return battleRepository.save(battle);
     }
 
     private PlayerEntity resolvePlayerEntityFromArray(JsonNode playersNode) {
