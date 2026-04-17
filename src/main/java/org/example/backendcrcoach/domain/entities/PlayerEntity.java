@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.domain.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -39,6 +40,7 @@ public class PlayerEntity {
     @ElementCollection
     @CollectionTable(name = "player_entity_princess_towers_hit_points", joinColumns = @JoinColumn(name = "player_entity_id"))
     @Column(name = "hit_points")
+    @JsonIgnore
     private List<Integer> princessTowersHitPoints;
 
     @ManyToOne
