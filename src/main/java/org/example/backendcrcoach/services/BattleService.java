@@ -4,6 +4,8 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
@@ -143,7 +145,7 @@ public class BattleService {
     public List<BattleResponseDTO> getBattlesByPlayerTag(String playerTag, Integer limit) {
         if (playerTag == null || playerTag.isBlank()) return List.of();
         int pageSize = (limit == null || limit <= 0) ? 50 : limit;
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, pageSize);
+        Pageable pageable = PageRequest.of(0, pageSize);
         List<Battle> battles = battleRepository.findByTeamTagOrOpponentTagOrderByBattleTimeDesc(playerTag, playerTag, pageable);
         return battles.stream().map(BattleMapper::toDTO).collect(Collectors.toList());
     }

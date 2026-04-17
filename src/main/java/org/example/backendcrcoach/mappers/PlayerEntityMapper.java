@@ -29,11 +29,6 @@ public class PlayerEntityMapper {
     }
 
     public static PlayerEntityResponseDTO toDTO(PlayerEntity entity) {
-        // Asegurarse de inicializar/copy la colección LAZY dentro de la transacción
-        List<Integer> princessCopy = null;
-        if (entity.getPrincessTowersHitPoints() != null) {
-            princessCopy = new ArrayList<>(entity.getPrincessTowersHitPoints());
-        }
 
         return new PlayerEntityResponseDTO(
                 entity.getId(),
@@ -43,7 +38,7 @@ public class PlayerEntityMapper {
                 entity.getTrophyChange(),
                 entity.getCrowns(),
                 entity.getKingTowerHitPoints(),
-                princessCopy,
+                entity.getPrincessTowersHitPoints() != null ? new ArrayList<>(entity.getPrincessTowersHitPoints()) : null,
                 entity.getClan() != null ? entity.getClan().getTag() : null,
                 entity.getClan() != null ? entity.getClan().getName() : null,
                 entity.getGlobalRank(),
