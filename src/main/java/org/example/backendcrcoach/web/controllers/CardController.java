@@ -46,7 +46,7 @@ public class CardController {
     }
 
     @Operation(summary = "Importar todas las cartas", description = "Importa todas las cartas desde la API externa.")
-    @PostMapping("/import")
+    @GetMapping("/import")
     public ResponseEntity<String> importAll() {
         int imported = cardService.importAllCardsFromApi();
         return ResponseEntity.ok("Imported " + imported + " cards");
