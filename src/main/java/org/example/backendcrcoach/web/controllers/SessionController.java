@@ -66,7 +66,7 @@ public class SessionController {
 
     @Operation(summary = "Listar sesiones por usuario", description = "Obtiene la lista de sesiones asociadas al email del usuario.")
     @GetMapping("/mySessions/{email}")
-    public ResponseEntity<List<SessionResponseDTO>> listByUserEmail(@PathVariable @RequestParam(name = "email") String email) {
+    public ResponseEntity<List<SessionResponseDTO>> listByUserEmail(@PathVariable(name = "email") String email) {
         List<SessionResponseDTO> sessions = sessionService.listByUserEmail(email);
         return ResponseEntity.ok(sessions);
     }
