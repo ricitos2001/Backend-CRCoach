@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -110,12 +112,29 @@ public class MetricsService {
         int unread = 0;
         if (userEmail != null) unread = notificationRepository.countByUserEmailAndReadFalse(userEmail);
 
+        // Calcular win/loss last7Days usando batallas recientes (allRecent contiene hasta 200)
+        Instant now = Instant.now();
+        Instant sevenDaysAgo = now.minus(Duration.ofDays(7));
+        long win7d = 0;
+        long loss7d = 0;
+        long total7d = 0;
+        for (Battle b : allRecent) {
+            Instant ts = Instant.parse(b.getBattleTime());
+            if (ts.isBefore(sevenDaysAgo)) continue;
+            total7d++;
+            if (b.getTeam() != null && b.getOpponent() != null && b.getTeam().getCrowns() != null && b.getOpponent().getCrowns() != null) {
+                if (b.getTeam().getCrowns() > b.getOpponent().getCrowns()) win7d++; else if (b.getTeam().getCrowns() < b.getOpponent().getCrowns()) loss7d++;
+            }
+        }
+        Double winRate7d = total7d == 0 ? null : Math.round(((double) win7d / total7d) * 10000.0) / 10000.0;
+        Double lossRate7d = total7d == 0 ? null : Math.round(((double) loss7d / total7d) * 10000.0) / 10000.0;
+
         // Persistir Metric y sus subentidades para mantener histórico
         try {
-            Metric metric = new org.example.backendcrcoach.domain.entities.Metric();
+            Metric metric = new Metric();
             metric.setTag(profile.getTag());
             metric.setName(profile.getName());
-            metric.setGeneratedAt(java.time.LocalDateTime.now());
+            metric.setGeneratedAt(LocalDateTime.now());
             metric.setTrophies(latest != null ? latest.getTrophies() : profile.getTrophies());
             metric.setBestTrophies(profile.getBestTrophies());
             metric.setChangeTrophiesIn24h(change24);
@@ -126,13 +145,13 @@ public class MetricsService {
             // WinRate
             WinRate wr = new WinRate();
             wr.setLast25Battles(calculateWinRate(recentBattles));
-            wr.setLast7Days(null);
+            wr.setLast7Days(winRate7d);
             metric.setWinRate(wr);
 
             // LossRate
             LossRate lr = new LossRate();
             lr.setLast25Battles(calculateLossRate(recentBattles));
-            lr.setLast7Days(null);
+            lr.setLast7Days(lossRate7d);
             metric.setLossRate(lr);
 
             // Streak
@@ -163,14 +182,14 @@ public class MetricsService {
 
             metric.setUnreadNotifications(unread);
 
-            org.example.backendcrcoach.domain.entities.Metric saved = metricRepository.save(metric);
+            Metric saved = metricRepository.save(metric);
             log.info("Metric persisted id={} tag={}", saved.getId(), profile.getTag());
         } catch (Exception e) {
             // No detener la respuesta por fallo en persistencia; loguear
             log.error("Error persisting metric for tag {}: {}", profile != null ? profile.getTag() : "<null>", e.getMessage(), e);
         }
 
-        return MetricMapper.toDtoFromData(profile, latest, change24, recentBattles, battlesLast24h, totalBattles, activeGoalsCount, mostAdvanced, unread);
+        return MetricMapper.toDtoFromData(profile, latest, change24, recentBattles, battlesLast24h, totalBattles, activeGoalsCount, mostAdvanced, unread, winRate7d, lossRate7d);
     }
 
     private Double calculateWinRate(List<Battle> battles) {

@@ -2,7 +2,6 @@ package org.example.backendcrcoach.mappers;
 
 import org.example.backendcrcoach.domain.dto.MetricResponseDTO;
 import org.example.backendcrcoach.domain.entities.*;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MetricMapper {
@@ -15,7 +14,9 @@ public class MetricMapper {
                                                  Integer totalBattles,
                                                  Integer activeGoalsCount,
                                                  Goal mostAdvancedGoal,
-                                                 Integer unreadNotifications) {
+                                                 Integer unreadNotifications,
+                                                 Double winLast7Days,
+                                                 Double lossLast7Days) {
 
         MetricResponseDTO dto = new MetricResponseDTO();
         dto.setPlayerTag(profile != null ? profile.getTag() : null);
@@ -48,14 +49,14 @@ public class MetricMapper {
         // winRate calculations
         MetricResponseDTO.WinRateDto wr = new MetricResponseDTO.WinRateDto();
         wr.setLast25Battles(calculateWinRate(recentBattles));
-        // last7Days is not calculated here (needs separate query), keep null
-        wr.setLast7Days(null);
+        // last7Days computed by caller
+        wr.setLast7Days(winLast7Days);
         dto.setWinRate(wr);
 
         // lossRate calculations (same logic as winRate but counting defeats)
         MetricResponseDTO.LossRateDto lr = new MetricResponseDTO.LossRateDto();
         lr.setLast25Battles(calculateLossRate(recentBattles));
-        lr.setLast7Days(null);
+        lr.setLast7Days(lossLast7Days);
         dto.setLossRate(lr);
 
         MetricResponseDTO.StreakDto st = calculateStreakDto(recentBattles);
