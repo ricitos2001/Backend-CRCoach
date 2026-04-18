@@ -26,7 +26,7 @@ public class MetricResponseDTO {
     private ActiveGoalsDto activeGoals;
     private Integer unreadNotifications;
     private Integer donations;
-    private Integer chanceDonations24Hours;
+
 
     @Getter
     @Setter

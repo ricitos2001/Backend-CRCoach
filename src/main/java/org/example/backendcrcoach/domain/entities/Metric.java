@@ -81,8 +81,6 @@ public class Metric {
     @Column
     private Integer donations;
 
-    @Column
-    private Integer chanceDonations24Hours;
 
     // Relación opcional directa con PlayerProfile si se desea enlazar (no necesaria para serialización JSON)
     @ManyToOne
