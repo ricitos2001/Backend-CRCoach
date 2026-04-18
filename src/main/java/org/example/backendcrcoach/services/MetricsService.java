@@ -77,8 +77,8 @@ public class MetricsService {
         int battlesLast24h = 0;
         for (Battle b : allRecent) {
             try {
-                java.time.Instant inst = java.time.Instant.parse(b.getBattleTime());
-                if (inst.isAfter(java.time.Instant.now().minus(24, ChronoUnit.HOURS))) battlesLast24h++;
+                Instant inst = parseBattleInstant(b.getBattleTime());
+                if (inst != null && inst.isAfter(Instant.now().minus(24, ChronoUnit.HOURS))) battlesLast24h++;
             } catch (Exception e) {
                 // ignore unparsable times
             }
@@ -119,11 +119,16 @@ public class MetricsService {
         long loss7d = 0;
         long total7d = 0;
         for (Battle b : allRecent) {
-            Instant ts = Instant.parse(b.getBattleTime());
-            if (ts.isBefore(sevenDaysAgo)) continue;
-            total7d++;
-            if (b.getTeam() != null && b.getOpponent() != null && b.getTeam().getCrowns() != null && b.getOpponent().getCrowns() != null) {
-                if (b.getTeam().getCrowns() > b.getOpponent().getCrowns()) win7d++; else if (b.getTeam().getCrowns() < b.getOpponent().getCrowns()) loss7d++;
+            try {
+                Instant ts = parseBattleInstant(b.getBattleTime());
+                if (ts == null) continue;
+                if (ts.isBefore(sevenDaysAgo)) continue;
+                total7d++;
+                if (b.getTeam() != null && b.getOpponent() != null && b.getTeam().getCrowns() != null && b.getOpponent().getCrowns() != null) {
+                    if (b.getTeam().getCrowns() > b.getOpponent().getCrowns()) win7d++; else if (b.getTeam().getCrowns() < b.getOpponent().getCrowns()) loss7d++;
+                }
+            } catch (Exception ignore) {
+                // skip unparsable battle times
             }
         }
         Double winRate7d = total7d == 0 ? null : Math.round(((double) win7d / total7d) * 10000.0) / 10000.0;
@@ -195,13 +200,59 @@ public class MetricsService {
     private Double calculateWinRate(List<Battle> battles) {
         if (battles == null || battles.isEmpty()) return null;
         long wins = battles.stream().filter(b -> b.getTeam() != null && b.getTeam().getCrowns() != null && b.getOpponent() != null && b.getOpponent().getCrowns() != null && b.getTeam().getCrowns() > b.getOpponent().getCrowns()).count();
-        return (double) wins / (double) battles.size();
+        double raw = (double) wins / (double) battles.size();
+        return Math.round(raw * 10000.0) / 10000.0;
     }
 
     private Double calculateLossRate(List<Battle> battles) {
         if (battles == null || battles.isEmpty()) return null;
         long losses = battles.stream().filter(b -> b.getTeam() != null && b.getTeam().getCrowns() != null && b.getOpponent() != null && b.getOpponent().getCrowns() != null && b.getTeam().getCrowns() < b.getOpponent().getCrowns()).count();
-        return (double) losses / (double) battles.size();
+        double raw = (double) losses / (double) battles.size();
+        return Math.round(raw * 10000.0) / 10000.0;
+    }
+
+    /**
+     * Intenta parsear la fecha de batalla en varios formatos conocidos.
+     * Devuelve null si no pudo parsearse.
+     */
+    private Instant parseBattleInstant(String s) {
+        if (s == null) return null;
+        try {
+            return Instant.parse(s);
+        } catch (Exception ignored) {}
+
+        // formato tipo 20260416T155547.000Z o 20260416T155547Z
+        try {
+            java.time.format.DateTimeFormatter fmtMillis = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss.SSS'Z'").withZone(java.time.ZoneOffset.UTC);
+            return Instant.from(fmtMillis.parse(s));
+        } catch (Exception ignored) {}
+
+        try {
+            java.time.format.DateTimeFormatter fmtNoMillis = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(java.time.ZoneOffset.UTC);
+            return Instant.from(fmtNoMillis.parse(s));
+        } catch (Exception ignored) {}
+
+        // último intento: intentar insertar separadores básicos si la cadena tiene longitud esperada
+        try {
+            // Transformar 20260416T155547.000Z -> 2026-04-16T15:55:47.000Z
+            if (s.matches("\\d{8}T\\d{6}.*")) {
+                String date = s.substring(0, 8);
+                String timeAndRest = s.substring(9);
+                String time;
+                String rest = "";
+                int dotIdx = timeAndRest.indexOf('.');
+                if (dotIdx > 0) {
+                    time = timeAndRest.substring(0, dotIdx);
+                    rest = timeAndRest.substring(dotIdx);
+                } else {
+                    time = timeAndRest;
+                }
+                String normalized = date.substring(0,4) + "-" + date.substring(4,6) + "-" + date.substring(6,8) + "T" + time.substring(0,2) + ":" + time.substring(2,4) + ":" + time.substring(4,6) + rest;
+                return Instant.parse(normalized);
+            }
+        } catch (Exception ignored) {}
+
+        return null;
     }
 
     private Streak calculateStreakEntity(List<Battle> battles) {

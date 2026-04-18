@@ -91,7 +91,8 @@ public class MetricMapper {
     private static Double calculateWinRate(List<Battle> battles) {
         if (battles == null || battles.isEmpty()) return null;
         long wins = battles.stream().filter(b -> b.getTeam() != null && b.getTeam().getCrowns() != null && b.getOpponent() != null && b.getOpponent().getCrowns() != null && b.getTeam().getCrowns() > b.getOpponent().getCrowns()).count();
-        return (double) wins / (double) battles.size();
+        double raw = (double) wins / (double) battles.size();
+        return Math.round(raw * 10000.0) / 10000.0;
     }
 
     private static Double calculateLossRate(List<Battle> battles) {
@@ -104,7 +105,8 @@ public class MetricMapper {
             if (teamCrowns == null || oppCrowns == null) return false;
             return teamCrowns < oppCrowns;
         }).count();
-        return (double) losses / (double) battles.size();
+        double raw = (double) losses / (double) battles.size();
+        return Math.round(raw * 10000.0) / 10000.0;
     }
 
     private static MetricResponseDTO.StreakDto calculateStreakDto(List<Battle> battles) {
