@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
@@ -187,7 +189,36 @@ public class MetricsService {
 
             metric.setUnreadNotifications(unread);
 
-            Metric saved = metricRepository.save(metric);
+            // Si la metric contiene leagueStatistics con id, intentar buscar una métrica
+            // existente vinculada a esa leagueStatistics y actualizarla en lugar de insertar.
+            Metric saved;
+            if (metric.getLeagueStatistics() != null && metric.getLeagueStatistics().getId() != null) {
+                Optional<Metric> existing = metricRepository.findByLeagueStatisticsId(metric.getLeagueStatistics().getId());
+                if (existing.isPresent()) {
+                    Metric existingMetric = existing.get();
+                    // Actualizar campos relevantes en la entidad existente
+                    existingMetric.setTag(metric.getTag());
+                    existingMetric.setName(metric.getName());
+                    existingMetric.setGeneratedAt(metric.getGeneratedAt());
+                    existingMetric.setTrophies(metric.getTrophies());
+                    existingMetric.setBestTrophies(metric.getBestTrophies());
+                    existingMetric.setChangeTrophiesIn24h(metric.getChangeTrophiesIn24h());
+                    existingMetric.setArena(metric.getArena());
+                    existingMetric.setLeagueStatistics(metric.getLeagueStatistics());
+                    existingMetric.setPlayerProfile(metric.getPlayerProfile());
+                    existingMetric.setWinRate(metric.getWinRate());
+                    existingMetric.setLossRate(metric.getLossRate());
+                    existingMetric.setStreak(metric.getStreak());
+                    existingMetric.setBattles(metric.getBattles());
+                    existingMetric.setActiveGoals(metric.getActiveGoals());
+                    existingMetric.setUnreadNotifications(metric.getUnreadNotifications());
+                    saved = metricRepository.save(existingMetric);
+                } else {
+                    saved = metricRepository.save(metric);
+                }
+            } else {
+                saved = metricRepository.save(metric);
+            }
             log.info("Metric persisted id={} tag={}", saved.getId(), profile.getTag());
         } catch (Exception e) {
             // No detener la respuesta por fallo en persistencia; loguear
@@ -223,16 +254,15 @@ public class MetricsService {
 
         // formato tipo 20260416T155547.000Z o 20260416T155547Z
         try {
-            java.time.format.DateTimeFormatter fmtMillis = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss.SSS'Z'").withZone(java.time.ZoneOffset.UTC);
+            DateTimeFormatter fmtMillis = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss.SSS'Z'").withZone(ZoneOffset.UTC);
             return Instant.from(fmtMillis.parse(s));
         } catch (Exception ignored) {}
 
         try {
-            java.time.format.DateTimeFormatter fmtNoMillis = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(java.time.ZoneOffset.UTC);
+             DateTimeFormatter fmtNoMillis = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
             return Instant.from(fmtNoMillis.parse(s));
         } catch (Exception ignored) {}
 
-        // último intento: intentar insertar separadores básicos si la cadena tiene longitud esperada
         try {
             // Transformar 20260416T155547.000Z -> 2026-04-16T15:55:47.000Z
             if (s.matches("\\d{8}T\\d{6}.*")) {
