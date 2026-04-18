@@ -198,24 +198,98 @@ public class MetricsService {
             if (metric.getLeagueStatistics() != null && metric.getLeagueStatistics().getId() != null) {
                 Optional<Metric> existing = metricRepository.findByLeagueStatisticsId(metric.getLeagueStatistics().getId());
                 if (existing.isPresent()) {
+
                     Metric existingMetric = existing.get();
-                    // Actualizar campos relevantes en la entidad existente
+                    // Actualizar campos simples
                     existingMetric.setTag(metric.getTag());
                     existingMetric.setName(metric.getName());
                     existingMetric.setGeneratedAt(metric.getGeneratedAt());
                     existingMetric.setTrophies(metric.getTrophies());
                     existingMetric.setBestTrophies(metric.getBestTrophies());
                     existingMetric.setChangeTrophiesIn24h(metric.getChangeTrophiesIn24h());
-                    existingMetric.setArena(metric.getArena());
-                    existingMetric.setLeagueStatistics(metric.getLeagueStatistics());
                     existingMetric.setPlayerProfile(metric.getPlayerProfile());
-                    existingMetric.setWinRate(metric.getWinRate());
-                    existingMetric.setLossRate(metric.getLossRate());
-                    existingMetric.setStreak(metric.getStreak());
-                    existingMetric.setBattles(metric.getBattles());
-                    existingMetric.setActiveGoals(metric.getActiveGoals());
-                    existingMetric.setDonations(metric.getDonations());
                     existingMetric.setUnreadNotifications(metric.getUnreadNotifications());
+                    existingMetric.setDonations(metric.getDonations());
+
+                    // Arena: actualizar campos existentes para evitar crear filas nuevas
+                    if (metric.getArena() != null) {
+                        if (existingMetric.getArena() != null) {
+                            existingMetric.getArena().setName(metric.getArena().getName());
+                            existingMetric.getArena().setRawName(metric.getArena().getRawName());
+                        } else {
+                            existingMetric.setArena(metric.getArena());
+                        }
+                    }
+
+                    // LeagueStadistic: evitar crear nueva entidad si ya existe
+                    if (metric.getLeagueStatistics() != null) {
+                        if (existingMetric.getLeagueStatistics() != null) {
+                            existingMetric.getLeagueStatistics().setCurrentSeason(metric.getLeagueStatistics().getCurrentSeason());
+                            existingMetric.getLeagueStatistics().setPreviousSeason(metric.getLeagueStatistics().getPreviousSeason());
+                            existingMetric.getLeagueStatistics().setBestSeason(metric.getLeagueStatistics().getBestSeason());
+                        } else {
+                            existingMetric.setLeagueStatistics(metric.getLeagueStatistics());
+                        }
+                    }
+
+                    // WinRate: actualizar campos internos si existe
+                    if (metric.getWinRate() != null) {
+                        if (existingMetric.getWinRate() != null) {
+                            existingMetric.getWinRate().setLast25Battles(metric.getWinRate().getLast25Battles());
+                            existingMetric.getWinRate().setLast7Days(metric.getWinRate().getLast7Days());
+                        } else {
+                            existingMetric.setWinRate(metric.getWinRate());
+                        }
+                    }
+
+                    // LossRate
+                    if (metric.getLossRate() != null) {
+                        if (existingMetric.getLossRate() != null) {
+                            existingMetric.getLossRate().setLast25Battles(metric.getLossRate().getLast25Battles());
+                            existingMetric.getLossRate().setLast7Days(metric.getLossRate().getLast7Days());
+                        } else {
+                            existingMetric.setLossRate(metric.getLossRate());
+                        }
+                    }
+
+                    // Streak
+                    if (metric.getStreak() != null) {
+                        if (existingMetric.getStreak() != null) {
+                            existingMetric.getStreak().setCurrent(metric.getStreak().getCurrent());
+                            existingMetric.getStreak().setType(metric.getStreak().getType());
+                        } else {
+                            existingMetric.setStreak(metric.getStreak());
+                        }
+                    }
+
+                    // Battles
+                    if (metric.getBattles() != null) {
+                        if (existingMetric.getBattles() != null) {
+                            existingMetric.getBattles().setTotal(metric.getBattles().getTotal());
+                            existingMetric.getBattles().setLast24h(metric.getBattles().getLast24h());
+                        } else {
+                            existingMetric.setBattles(metric.getBattles());
+                        }
+                    }
+
+                    // ActiveGoals / MostAdvanced
+                    if (metric.getActiveGoals() != null) {
+                        if (existingMetric.getActiveGoals() != null) {
+                            existingMetric.getActiveGoals().setCount(metric.getActiveGoals().getCount());
+                            existingMetric.getActiveGoals().setNearestDeadline(metric.getActiveGoals().getNearestDeadline());
+                            if (metric.getActiveGoals().getMostAdvanced() != null) {
+                                if (existingMetric.getActiveGoals().getMostAdvanced() != null) {
+                                    existingMetric.getActiveGoals().getMostAdvanced().setTitle(metric.getActiveGoals().getMostAdvanced().getTitle());
+                                    existingMetric.getActiveGoals().getMostAdvanced().setProgressPercent(metric.getActiveGoals().getMostAdvanced().getProgressPercent());
+                                } else {
+                                    existingMetric.getActiveGoals().setMostAdvanced(metric.getActiveGoals().getMostAdvanced());
+                                }
+                            }
+                        } else {
+                            existingMetric.setActiveGoals(metric.getActiveGoals());
+                        }
+                    }
+
                     saved = metricRepository.save(existingMetric);
                 } else {
                     saved = metricRepository.save(metric);
