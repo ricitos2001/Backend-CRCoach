@@ -77,6 +77,13 @@ public class Metric {
     @Column
     private Integer unreadNotifications;
 
+    // Nuevas propiedades para donaciones y probabilidad de donaciones en las últimas 24h
+    @Column
+    private Integer donations;
+
+    @Column
+    private Integer chanceDonations24Hours;
+
     // Relación opcional directa con PlayerProfile si se desea enlazar (no necesaria para serialización JSON)
     @ManyToOne
     @JoinColumn(name = "player_profile_id")

@@ -16,7 +16,9 @@ public class MetricMapper {
                                                  Goal mostAdvancedGoal,
                                                  Integer unreadNotifications,
                                                  Double winLast7Days,
-                                                 Double lossLast7Days) {
+                                                 Double lossLast7Days,
+                                                 Integer donations,
+                                                 Integer chanceDonations24Hours) {
 
         MetricResponseDTO dto = new MetricResponseDTO();
         dto.setPlayerTag(profile != null ? profile.getTag() : null);
@@ -84,6 +86,8 @@ public class MetricMapper {
         dto.setActiveGoals(ag);
 
         dto.setUnreadNotifications(unreadNotifications);
+        dto.setDonations(donations);
+        dto.setChanceDonations24Hours(chanceDonations24Hours);
 
         return dto;
     }

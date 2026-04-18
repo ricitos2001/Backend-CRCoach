@@ -70,6 +70,15 @@ public class MetricsService {
             Snapshot older = last24.get(last24.size() - 1); // el más antiguo dentro de la ventana
             change24 = latest.getTrophies() - older.getTrophies();
         }
+        // Calcular donaciones y cambio de donaciones en 24h
+        Integer donations = latest != null ? latest.getDonations() : profile != null ? profile.getDonations() : null;
+        Integer chanceDonations24Hours = null;
+        if (latest != null && !last24.isEmpty()) {
+            Snapshot olderForDon = last24.get(last24.size() - 1);
+            if (latest.getDonations() != null && olderForDon.getDonations() != null) {
+                chanceDonations24Hours = latest.getDonations() - olderForDon.getDonations();
+            }
+        }
 
         // batallas recientes
         List<Battle> recentBattles = battleRepository.findByTeamTagOrderByBattleTimeDesc(tag, PageRequest.of(0, battlesLimit));
@@ -188,6 +197,8 @@ public class MetricsService {
             metric.setActiveGoals(ag);
 
             metric.setUnreadNotifications(unread);
+            metric.setDonations(donations);
+            metric.setChanceDonations24Hours(chanceDonations24Hours);
 
             // Si la metric contiene leagueStatistics con id, intentar buscar una métrica
             // existente vinculada a esa leagueStatistics y actualizarla en lugar de insertar.
@@ -225,7 +236,7 @@ public class MetricsService {
             log.error("Error persisting metric for tag {}: {}", profile != null ? profile.getTag() : "<null>", e.getMessage(), e);
         }
 
-        return MetricMapper.toDtoFromData(profile, latest, change24, recentBattles, battlesLast24h, totalBattles, activeGoalsCount, mostAdvanced, unread, winRate7d, lossRate7d);
+        return MetricMapper.toDtoFromData(profile, latest, change24, recentBattles, battlesLast24h, totalBattles, activeGoalsCount, mostAdvanced, unread, winRate7d, lossRate7d, donations, chanceDonations24Hours);
     }
 
     private Double calculateWinRate(List<Battle> battles) {
