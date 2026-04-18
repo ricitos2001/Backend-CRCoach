@@ -58,6 +58,10 @@ public class Metric {
     private WinRate winRate;
 
     @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "lossrate_id")
+    private LossRate lossRate;
+
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "streak_id")
     private Streak streak;
 

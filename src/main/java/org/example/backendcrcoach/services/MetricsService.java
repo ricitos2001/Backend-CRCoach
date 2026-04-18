@@ -129,6 +129,12 @@ public class MetricsService {
             wr.setLast7Days(null);
             metric.setWinRate(wr);
 
+            // LossRate
+            LossRate lr = new LossRate();
+            lr.setLast25Battles(calculateLossRate(recentBattles));
+            lr.setLast7Days(null);
+            metric.setLossRate(lr);
+
             // Streak
             Streak st = calculateStreakEntity(recentBattles);
             metric.setStreak(st);
@@ -171,6 +177,12 @@ public class MetricsService {
         if (battles == null || battles.isEmpty()) return null;
         long wins = battles.stream().filter(b -> b.getTeam() != null && b.getTeam().getCrowns() != null && b.getOpponent() != null && b.getOpponent().getCrowns() != null && b.getTeam().getCrowns() > b.getOpponent().getCrowns()).count();
         return (double) wins / (double) battles.size();
+    }
+
+    private Double calculateLossRate(List<Battle> battles) {
+        if (battles == null || battles.isEmpty()) return null;
+        long losses = battles.stream().filter(b -> b.getTeam() != null && b.getTeam().getCrowns() != null && b.getOpponent() != null && b.getOpponent().getCrowns() != null && b.getTeam().getCrowns() < b.getOpponent().getCrowns()).count();
+        return (double) losses / (double) battles.size();
     }
 
     private Streak calculateStreakEntity(List<Battle> battles) {

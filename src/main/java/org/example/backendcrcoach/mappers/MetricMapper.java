@@ -52,6 +52,12 @@ public class MetricMapper {
         wr.setLast7Days(null);
         dto.setWinRate(wr);
 
+        // lossRate calculations (same logic as winRate but counting defeats)
+        MetricResponseDTO.LossRateDto lr = new MetricResponseDTO.LossRateDto();
+        lr.setLast25Battles(calculateLossRate(recentBattles));
+        lr.setLast7Days(null);
+        dto.setLossRate(lr);
+
         MetricResponseDTO.StreakDto st = calculateStreakDto(recentBattles);
         dto.setStreak(st);
 
@@ -85,6 +91,19 @@ public class MetricMapper {
         if (battles == null || battles.isEmpty()) return null;
         long wins = battles.stream().filter(b -> b.getTeam() != null && b.getTeam().getCrowns() != null && b.getOpponent() != null && b.getOpponent().getCrowns() != null && b.getTeam().getCrowns() > b.getOpponent().getCrowns()).count();
         return (double) wins / (double) battles.size();
+    }
+
+    private static Double calculateLossRate(List<Battle> battles) {
+        if (battles == null || battles.isEmpty()) return null;
+        long losses = battles.stream().filter(b -> {
+            if (b == null) return false;
+            if (b.getTeam() == null || b.getOpponent() == null) return false;
+            Integer teamCrowns = b.getTeam().getCrowns();
+            Integer oppCrowns = b.getOpponent().getCrowns();
+            if (teamCrowns == null || oppCrowns == null) return false;
+            return teamCrowns < oppCrowns;
+        }).count();
+        return (double) losses / (double) battles.size();
     }
 
     private static MetricResponseDTO.StreakDto calculateStreakDto(List<Battle> battles) {
