@@ -328,82 +328,154 @@ public class AnalyticsService {
     // Persistencia de informes: convierten DTOs a entidades simples y las guardan
     public void saveWeaknessReport(WeaknessReportDto dto) {
         if (dto == null) return;
-        WeaknessReport e = WeaknessReport.builder()
-                .playerTag(dto.getPlayerTag())
-                .totalBattles(dto.getTotalBattles())
-                .periodFrom(dto.getPeriodFrom())
-                .periodTo(dto.getPeriodTo())
-                .weakestArchetype(dto.getWeakestArchetype())
-                .strongestArchetype(dto.getStrongestArchetype())
-                .createdAt(Instant.now())
-                .build();
-        WeaknessReport saved = weaknessReportRepository.save(e);
+        // Evitar duplicados: buscar informe existente por jugador y periodo
+        Optional<WeaknessReport> existing = weaknessReportRepository.findByPlayerTagAndPeriodFromAndPeriodTo(dto.getPlayerTag(), dto.getPeriodFrom(), dto.getPeriodTo());
+        if (existing.isPresent()) {
+            WeaknessReport saved = existing.get();
+            // actualizar campos básicos
+            saved.setTotalBattles(dto.getTotalBattles());
+            saved.setWeakestArchetype(dto.getWeakestArchetype());
+            saved.setStrongestArchetype(dto.getStrongestArchetype());
+            saved.setCreatedAt(Instant.now());
 
-        // Persistir registros individuales de archetype stats
-        if (dto.getByArchetype() != null && !dto.getByArchetype().isEmpty()) {
-            java.util.List<ArchetypeStat> stats = new java.util.ArrayList<>();
-            for (ArchetypeStatDto as : dto.getByArchetype()) {
-                ArchetypeStat st = ArchetypeStat.builder()
-                        .weaknessReport(saved)
-                        .archetype(as.getArchetype() != null ? as.getArchetype().name() : null)
-                        .battles(as.getBattles())
-                        .wins(as.getWins())
-                        .losses(as.getLosses())
-                        .winRate(as.getWinRate())
-                        .label(as.getLabel())
-                        .createdAt(Instant.now())
-                        .build();
-                stats.add(st);
+            // Reconstruir lista de archetype stats (orphanRemoval en la relación se encargará de eliminar las antiguas)
+            if (dto.getByArchetype() != null && !dto.getByArchetype().isEmpty()) {
+                java.util.List<ArchetypeStat> stats = new java.util.ArrayList<>();
+                for (ArchetypeStatDto as : dto.getByArchetype()) {
+                    ArchetypeStat st = ArchetypeStat.builder()
+                            .weaknessReport(saved)
+                            .archetype(as.getArchetype() != null ? as.getArchetype().name() : null)
+                            .battles(as.getBattles())
+                            .wins(as.getWins())
+                            .losses(as.getLosses())
+                            .winRate(as.getWinRate())
+                            .label(as.getLabel())
+                            .createdAt(Instant.now())
+                            .build();
+                    stats.add(st);
+                }
+                saved.setArchetypeStats(stats);
+            } else {
+                saved.setArchetypeStats(null);
             }
-            archetypeStatRepository.saveAll(stats);
-            saved.setArchetypeStats(stats);
+            weaknessReportRepository.save(saved);
+        } else {
+            WeaknessReport e = WeaknessReport.builder()
+                    .playerTag(dto.getPlayerTag())
+                    .totalBattles(dto.getTotalBattles())
+                    .periodFrom(dto.getPeriodFrom())
+                    .periodTo(dto.getPeriodTo())
+                    .weakestArchetype(dto.getWeakestArchetype())
+                    .strongestArchetype(dto.getStrongestArchetype())
+                    .createdAt(Instant.now())
+                    .build();
+
+            if (dto.getByArchetype() != null && !dto.getByArchetype().isEmpty()) {
+                java.util.List<ArchetypeStat> stats = new java.util.ArrayList<>();
+                for (ArchetypeStatDto as : dto.getByArchetype()) {
+                    ArchetypeStat st = ArchetypeStat.builder()
+                            .weaknessReport(e)
+                            .archetype(as.getArchetype() != null ? as.getArchetype().name() : null)
+                            .battles(as.getBattles())
+                            .wins(as.getWins())
+                            .losses(as.getLosses())
+                            .winRate(as.getWinRate())
+                            .label(as.getLabel())
+                            .createdAt(Instant.now())
+                            .build();
+                    stats.add(st);
+                }
+                e.setArchetypeStats(stats);
+            }
+            weaknessReportRepository.save(e);
         }
     }
 
     public void saveProblematicCardsReport(ProblematicCardsReportDto dto) {
         if (dto == null) return;
-        ProblematicCardsReport e = ProblematicCardsReport.builder()
-                .playerTag(dto.getPlayerTag())
-                .totalLosses(dto.getTotalLosses())
-                .createdAt(Instant.now())
-                .build();
-        ProblematicCardsReport saved = problematicCardsReportRepository.save(e);
+        // Evitar duplicados: buscar informe existente por playerTag y totalLosses
+        Optional<ProblematicCardsReport> existing = problematicCardsReportRepository.findByPlayerTagAndTotalLosses(dto.getPlayerTag(), dto.getTotalLosses());
+        if (existing.isPresent()) {
+            ProblematicCardsReport saved = existing.get();
+            saved.setTotalLosses(dto.getTotalLosses());
+            saved.setCreatedAt(Instant.now());
 
-        // Persistir registros individuales de problematic cards
-        if (dto.getProblematicCards() != null && !dto.getProblematicCards().isEmpty()) {
-            java.util.List<ProblematicCard> list = new java.util.ArrayList<>();
-            for (ProblematicCardDto pc : dto.getProblematicCards()) {
-                ProblematicCard p = ProblematicCard.builder()
-                        .problematicCardsReport(saved)
-                        .cardId(pc.getCardId())
-                        .name(pc.getName())
-                        .appearances(pc.getAppearances())
-                        .playerLossRate(pc.getPlayerLossRate())
-                        .iconUrl(pc.getIconUrl())
-                        .createdAt(Instant.now())
-                        .build();
-                list.add(p);
+            if (dto.getProblematicCards() != null && !dto.getProblematicCards().isEmpty()) {
+                java.util.List<ProblematicCard> list = new java.util.ArrayList<>();
+                for (ProblematicCardDto pc : dto.getProblematicCards()) {
+                    ProblematicCard p = ProblematicCard.builder()
+                            .problematicCardsReport(saved)
+                            .cardId(pc.getCardId())
+                            .name(pc.getName())
+                            .appearances(pc.getAppearances())
+                            .playerLossRate(pc.getPlayerLossRate())
+                            .iconUrl(pc.getIconUrl())
+                            .createdAt(Instant.now())
+                            .build();
+                    list.add(p);
+                }
+                saved.setProblematicCards(list);
+            } else {
+                saved.setProblematicCards(null);
             }
-            problematicCardRepository.saveAll(list);
-            saved.setProblematicCards(list);
+            problematicCardsReportRepository.save(saved);
+        } else {
+            ProblematicCardsReport e = ProblematicCardsReport.builder()
+                    .playerTag(dto.getPlayerTag())
+                    .totalLosses(dto.getTotalLosses())
+                    .createdAt(Instant.now())
+                    .build();
+
+            if (dto.getProblematicCards() != null && !dto.getProblematicCards().isEmpty()) {
+                java.util.List<ProblematicCard> list = new java.util.ArrayList<>();
+                for (ProblematicCardDto pc : dto.getProblematicCards()) {
+                    ProblematicCard p = ProblematicCard.builder()
+                            .problematicCardsReport(e)
+                            .cardId(pc.getCardId())
+                            .name(pc.getName())
+                            .appearances(pc.getAppearances())
+                            .playerLossRate(pc.getPlayerLossRate())
+                            .iconUrl(pc.getIconUrl())
+                            .createdAt(Instant.now())
+                            .build();
+                    list.add(p);
+                }
+                e.setProblematicCards(list);
+            }
+            problematicCardsReportRepository.save(e);
         }
     }
 
     public void savePlayerSummary(PlayerSummaryDto dto) {
         if (dto == null) return;
-        PlayerSummaryReport e = PlayerSummaryReport.builder()
-                .playerTag(dto.getPlayerTag())
-                .trophies(dto.getTrophies())
-                .winRateLast25(dto.getWinRateLast25())
-                .winRateLast7d(dto.getWinRateLast7d())
-                .currentStreak(dto.getCurrentStreak())
-                .totalBattles(dto.getTotalBattles())
-                .weakestArchetype(dto.getWeakestArchetype())
-                .strongestArchetype(dto.getStrongestArchetype())
-                .avgElixirLastDeck(dto.getAvgElixirLastDeck())
-                .createdAt(Instant.now())
-                .build();
-        playerSummaryReportRepository.save(e);
+        // Evitar duplicados: buscar por playerTag y totalBattles
+        Optional<PlayerSummaryReport> existing = playerSummaryReportRepository.findByPlayerTagAndTotalBattles(dto.getPlayerTag(), dto.getTotalBattles());
+        if (existing.isPresent()) {
+            PlayerSummaryReport saved = existing.get();
+            saved.setTrophies(dto.getTrophies());
+            saved.setWinRateLast25(dto.getWinRateLast25());
+            saved.setWinRateLast7d(dto.getWinRateLast7d());
+            saved.setCurrentStreak(dto.getCurrentStreak());
+            saved.setWeakestArchetype(dto.getWeakestArchetype());
+            saved.setStrongestArchetype(dto.getStrongestArchetype());
+            saved.setAvgElixirLastDeck(dto.getAvgElixirLastDeck());
+            saved.setCreatedAt(Instant.now());
+            playerSummaryReportRepository.save(saved);
+        } else {
+            PlayerSummaryReport e = PlayerSummaryReport.builder()
+                    .playerTag(dto.getPlayerTag())
+                    .trophies(dto.getTrophies())
+                    .winRateLast25(dto.getWinRateLast25())
+                    .winRateLast7d(dto.getWinRateLast7d())
+                    .currentStreak(dto.getCurrentStreak())
+                    .totalBattles(dto.getTotalBattles())
+                    .weakestArchetype(dto.getWeakestArchetype())
+                    .strongestArchetype(dto.getStrongestArchetype())
+                    .avgElixirLastDeck(dto.getAvgElixirLastDeck())
+                    .createdAt(Instant.now())
+                    .build();
+            playerSummaryReportRepository.save(e);
+        }
     }
 
     private boolean inferWinFromBattle(Battle b, String playerTag) {
