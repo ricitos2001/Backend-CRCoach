@@ -196,9 +196,14 @@ public class MetricsService {
             // existente vinculada a esa leagueStatistics y actualizarla en lugar de insertar.
             Metric saved;
             if (metric.getLeagueStatistics() != null && metric.getLeagueStatistics().getId() != null) {
+                // Intentar localizar por leagueStatistics.id primero
                 Optional<Metric> existing = metricRepository.findByLeagueStatisticsId(metric.getLeagueStatistics().getId());
-                if (existing.isPresent()) {
+                // Si no existe por leagueStatistics.id, intentar localizar por tag (fallback)
+                if (existing.isEmpty()) {
+                    existing = metricRepository.findTopByTag(metric.getTag());
+                }
 
+                if (existing.isPresent()) {
                     Metric existingMetric = existing.get();
                     // Actualizar campos simples
                     existingMetric.setTag(metric.getTag());
@@ -292,10 +297,47 @@ public class MetricsService {
 
                     saved = metricRepository.save(existingMetric);
                 } else {
+                    // No se encontró métrica existente: persistir nueva
                     saved = metricRepository.save(metric);
                 }
             } else {
-                saved = metricRepository.save(metric);
+                // No hay leagueStatistics.id; intentar localizar por tag como fallback
+                Optional<Metric> existingByTag = metricRepository.findTopByTag(metric.getTag());
+                if (existingByTag.isPresent()) {
+                    Metric existingMetric = existingByTag.get();
+                    // Actualizar solo los campos necesarios (evitar crear nuevas entidades ActiveGoals)
+                    existingMetric.setTag(metric.getTag());
+                    existingMetric.setName(metric.getName());
+                    existingMetric.setGeneratedAt(metric.getGeneratedAt());
+                    existingMetric.setTrophies(metric.getTrophies());
+                    existingMetric.setBestTrophies(metric.getBestTrophies());
+                    existingMetric.setChangeTrophiesIn24h(metric.getChangeTrophiesIn24h());
+                    existingMetric.setPlayerProfile(metric.getPlayerProfile());
+                    existingMetric.setUnreadNotifications(metric.getUnreadNotifications());
+                    existingMetric.setDonations(metric.getDonations());
+
+                    // Actualizar ActiveGoals si ya existe para evitar insertar nueva fila
+                    if (metric.getActiveGoals() != null) {
+                        if (existingMetric.getActiveGoals() != null) {
+                            existingMetric.getActiveGoals().setCount(metric.getActiveGoals().getCount());
+                            existingMetric.getActiveGoals().setNearestDeadline(metric.getActiveGoals().getNearestDeadline());
+                            if (metric.getActiveGoals().getMostAdvanced() != null) {
+                                if (existingMetric.getActiveGoals().getMostAdvanced() != null) {
+                                    existingMetric.getActiveGoals().getMostAdvanced().setTitle(metric.getActiveGoals().getMostAdvanced().getTitle());
+                                    existingMetric.getActiveGoals().getMostAdvanced().setProgressPercent(metric.getActiveGoals().getMostAdvanced().getProgressPercent());
+                                } else {
+                                    existingMetric.getActiveGoals().setMostAdvanced(metric.getActiveGoals().getMostAdvanced());
+                                }
+                            }
+                        } else {
+                            existingMetric.setActiveGoals(metric.getActiveGoals());
+                        }
+                    }
+
+                    saved = metricRepository.save(existingMetric);
+                } else {
+                    saved = metricRepository.save(metric);
+                }
             }
             log.info("Metric persisted id={} tag={}", saved.getId(), profile.getTag());
         } catch (Exception e) {

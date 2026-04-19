@@ -12,5 +12,8 @@ public interface MetricRepository extends JpaRepository<Metric, Long> {
 
     // Buscar la Metric asociada a una LeagueStadistic por su id (si existe)
     Optional<Metric> findByLeagueStatisticsId(Long leagueStadisticId);
+
+    // Fallback: buscar la última Metric persistida para un tag dado (si existe)
+    Optional<Metric> findTopByTag(String tag);
 }
 
