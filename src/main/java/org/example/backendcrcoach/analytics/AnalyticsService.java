@@ -339,25 +339,31 @@ public class AnalyticsService {
             saved.setCreatedAt(Instant.now());
 
             // Reconstruir lista de archetype stats (orphanRemoval en la relación se encargará de eliminar las antiguas)
-            if (dto.getByArchetype() != null && !dto.getByArchetype().isEmpty()) {
-                java.util.List<ArchetypeStat> stats = new java.util.ArrayList<>();
-                for (ArchetypeStatDto as : dto.getByArchetype()) {
-                    ArchetypeStat st = ArchetypeStat.builder()
-                            .weaknessReport(saved)
-                            .archetype(as.getArchetype() != null ? as.getArchetype().name() : null)
-                            .battles(as.getBattles())
-                            .wins(as.getWins())
-                            .losses(as.getLosses())
-                            .winRate(as.getWinRate())
-                            .label(as.getLabel())
-                            .createdAt(Instant.now())
-                            .build();
-                    stats.add(st);
+                if (dto.getByArchetype() != null && !dto.getByArchetype().isEmpty()) {
+                    java.util.List<ArchetypeStat> stats = new java.util.ArrayList<>();
+                    for (ArchetypeStatDto as : dto.getByArchetype()) {
+                        ArchetypeStat st = ArchetypeStat.builder()
+                                .weaknessReport(saved)
+                                .archetype(as.getArchetype() != null ? as.getArchetype().name() : null)
+                                .battles(as.getBattles())
+                                .wins(as.getWins())
+                                .losses(as.getLosses())
+                                .winRate(as.getWinRate())
+                                .label(as.getLabel())
+                                .createdAt(Instant.now())
+                                .build();
+                        stats.add(st);
+                    }
+                    // Evitar reemplazar la referencia de la colección cuando Hibernate usa orphanRemoval.
+                    if (saved.getArchetypeStats() != null) {
+                        saved.getArchetypeStats().clear();
+                        saved.getArchetypeStats().addAll(stats);
+                    } else {
+                        saved.setArchetypeStats(stats);
+                    }
+                } else {
+                    if (saved.getArchetypeStats() != null) saved.getArchetypeStats().clear();
                 }
-                saved.setArchetypeStats(stats);
-            } else {
-                saved.setArchetypeStats(null);
-            }
             weaknessReportRepository.save(saved);
         } else {
             WeaknessReport e = WeaknessReport.builder()
@@ -414,9 +420,15 @@ public class AnalyticsService {
                             .build();
                     list.add(p);
                 }
-                saved.setProblematicCards(list);
+                // Evitar reemplazar la colección cuando orphanRemoval está activado
+                if (saved.getProblematicCards() != null) {
+                    saved.getProblematicCards().clear();
+                    saved.getProblematicCards().addAll(list);
+                } else {
+                    saved.setProblematicCards(list);
+                }
             } else {
-                saved.setProblematicCards(null);
+                if (saved.getProblematicCards() != null) saved.getProblematicCards().clear();
             }
             problematicCardsReportRepository.save(saved);
         } else {
