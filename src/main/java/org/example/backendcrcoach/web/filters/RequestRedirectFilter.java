@@ -15,7 +15,7 @@ import java.io.IOException;
 @Component
 public class RequestRedirectFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RequestRedirectFilter.class);
-    private static final String REDIRECT_URL = "https://ricitos2001.github.io/Backend-CR-Coach/";
+    private static final String REDIRECT_URL = "https://ricitos2001.github.io/Backend-CRCoach/";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
