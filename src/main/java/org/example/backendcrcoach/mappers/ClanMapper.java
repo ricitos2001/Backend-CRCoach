@@ -10,6 +10,9 @@ public class ClanMapper {
         Clan clan = new Clan();
         clan.setTag(dto.getTag());
         clan.setName(dto.getName());
+        // If the request supplies a badgeId (from the Clash Royale API), use it.
+        // This ensures we store the real external badge id instead of a DB-generated one.
+        clan.setBadgeId(dto.getBadgeId());
         return clan;
     }
 
