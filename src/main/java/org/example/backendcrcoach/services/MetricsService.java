@@ -4,6 +4,7 @@ import org.example.backendcrcoach.domain.dto.MetricResponseDTO;
 import org.example.backendcrcoach.domain.entities.*;
 import org.example.backendcrcoach.mappers.MetricMapper;
 import org.example.backendcrcoach.repositories.*;
+import org.example.backendcrcoach.domain.enums.GoalStatus;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -191,6 +192,58 @@ public class MetricsService {
 
             metric.setUnreadNotifications(unread);
             metric.setDonations(donations);
+
+            // Actualizar los objetivos activos del usuario con los valores calculados en esta métrica.
+            // Esto asegura que `Goal.currentValue` refleje el estado real (trofeos, racha, donaciones, batallas, winRate).
+            if (userEmail != null && activeGoals != null && !activeGoals.isEmpty()) {
+                for (Goal g : activeGoals) {
+                    try {
+                        if (g.getMetricType() == null) continue;
+                        String mt = g.getMetricType().toLowerCase();
+                        Double newVal = null;
+                        switch (mt) {
+                            case "trophies":
+                            case "trofeos":
+                                newVal = metric.getTrophies() != null ? Double.valueOf(metric.getTrophies()) : null;
+                                break;
+                            case "winrate":
+                            case "win_rate":
+                            case "porcentaje_victorias":
+                            case "porcentaje":
+                                if (metric.getWinRate() != null) {
+                                    if (metric.getWinRate().getLast7Days() != null) newVal = metric.getWinRate().getLast7Days() * 100.0;
+                                    else if (metric.getWinRate().getLast25Battles() != null) newVal = metric.getWinRate().getLast25Battles() * 100.0;
+                                }
+                                break;
+                            case "streak":
+                            case "racha":
+                                if (metric.getStreak() != null && metric.getStreak().getCurrent() != null) newVal = Double.valueOf(metric.getStreak().getCurrent());
+                                break;
+                            case "donations":
+                            case "donaciones":
+                                if (metric.getDonations() != null) newVal = Double.valueOf(metric.getDonations());
+                                break;
+                            case "battles":
+                            case "batallas":
+                                if (metric.getBattles() != null && metric.getBattles().getTotal() != null) newVal = Double.valueOf(metric.getBattles().getTotal());
+                                break;
+                            default:
+                                // Si el metricType no se reconoce, intentar no modificar currentValue
+                                newVal = null;
+                        }
+                        if (newVal != null) {
+                            g.setCurrentValue(newVal);
+                            // Marcar completado si alcanza o supera el target
+                            if (g.getTargetValue() != null && newVal >= g.getTargetValue()) {
+                                g.setStatus(GoalStatus.COMPLETED);
+                            }
+                            goalRepository.save(g);
+                        }
+                    } catch (Exception ignored) {
+                        throw new RuntimeException("Error actualizando goal id " + g.getId() + " para user " + userEmail + ": " + ignored.getMessage(), ignored);
+                    }
+                }
+            }
 
             // Si la metric contiene leagueStatistics con id, intentar buscar una métrica
             // existente vinculada a esa leagueStatistics y actualizarla en lugar de insertar.
