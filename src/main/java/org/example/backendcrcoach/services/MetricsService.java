@@ -194,43 +194,103 @@ public class MetricsService {
             metric.setDonations(donations);
 
             // Actualizar los objetivos activos del usuario con los valores calculados en esta métrica.
-            // Esto asegura que `Goal.currentValue` refleje el estado real (trofeos, racha, donaciones, batallas, winRate).
+            // IMPORTANTE: para métricas tipo "trophies", "donations" y "battles" queremos actualizar
+            // con el incremento reciente (delta) en lugar del total acumulado.
             if (userEmail != null && activeGoals != null && !activeGoals.isEmpty()) {
+                // intentar recuperar la última métrica existente para este tag (si existe) y calcular deltas
+                Optional<Metric> prevMetricOpt = Optional.empty();
+                try {
+                    prevMetricOpt = metricRepository.findTopByTag(metric.getTag());
+                } catch (Exception ignored) {
+                    prevMetricOpt = Optional.empty();
+                }
+
                 for (Goal g : activeGoals) {
                     try {
                         if (g.getMetricType() == null) continue;
                         String mt = g.getMetricType().toLowerCase();
                         Double newVal = null;
+
                         switch (mt) {
                             case "trophies":
-                            case "trofeos":
-                                newVal = metric.getTrophies() != null ? Double.valueOf(metric.getTrophies()) : null;
+                            case "trofeos": {
+                                // preferir delta entre la métrica actual y la anterior; si no existe, usar changeTrophiesIn24h
+                                Integer delta = null;
+                                if (prevMetricOpt.isPresent() && prevMetricOpt.get().getTrophies() != null && metric.getTrophies() != null) {
+                                    delta = metric.getTrophies() - prevMetricOpt.get().getTrophies();
+                                } else if (metric.getChangeTrophiesIn24h() != null) {
+                                    delta = metric.getChangeTrophiesIn24h();
+                                }
+                                if (delta != null) newVal = Double.valueOf(delta);
                                 break;
+                            }
                             case "winrate":
                             case "win_rate":
                             case "porcentaje_victorias":
-                            case "porcentaje":
+                            case "porcentaje": {
+                                // Calcular delta en puntos porcentuales respecto a la métrica previa si existe.
+                                Double curr = null;
+                                Double prev = null;
                                 if (metric.getWinRate() != null) {
-                                    if (metric.getWinRate().getLast7Days() != null) newVal = metric.getWinRate().getLast7Days() * 100.0;
-                                    else if (metric.getWinRate().getLast25Battles() != null) newVal = metric.getWinRate().getLast25Battles() * 100.0;
+                                    if (metric.getWinRate().getLast7Days() != null) curr = metric.getWinRate().getLast7Days();
+                                    else if (metric.getWinRate().getLast25Battles() != null) curr = metric.getWinRate().getLast25Battles();
+                                }
+                                if (prevMetricOpt.isPresent() && prevMetricOpt.get().getWinRate() != null) {
+                                    if (prevMetricOpt.get().getWinRate().getLast7Days() != null) prev = prevMetricOpt.get().getWinRate().getLast7Days();
+                                    else if (prevMetricOpt.get().getWinRate().getLast25Battles() != null) prev = prevMetricOpt.get().getWinRate().getLast25Battles();
+                                }
+                                if (curr != null) {
+                                    if (prev != null) {
+                                        // delta en porcentaje (puntos porcentuales)
+                                        newVal = (curr - prev) * 100.0;
+                                    } else {
+                                        // fallback: usar el valor actual en porcentaje
+                                        newVal = curr * 100.0;
+                                    }
                                 }
                                 break;
+                            }
                             case "streak":
-                            case "racha":
-                                if (metric.getStreak() != null && metric.getStreak().getCurrent() != null) newVal = Double.valueOf(metric.getStreak().getCurrent());
+                            case "racha": {
+                                Integer currS = metric.getStreak() != null ? metric.getStreak().getCurrent() : null;
+                                Integer prevS = (prevMetricOpt.isPresent() && prevMetricOpt.get().getStreak() != null) ? prevMetricOpt.get().getStreak().getCurrent() : null;
+                                if (currS != null) {
+                                    if (prevS != null) newVal = Double.valueOf(currS - prevS);
+                                    else newVal = Double.valueOf(currS); // fallback: usar la racha actual
+                                }
                                 break;
+                            }
                             case "donations":
-                            case "donaciones":
-                                if (metric.getDonations() != null) newVal = Double.valueOf(metric.getDonations());
+                            case "donaciones": {
+                                Integer deltaD = null;
+                                if (prevMetricOpt.isPresent() && prevMetricOpt.get().getDonations() != null && metric.getDonations() != null) {
+                                    deltaD = metric.getDonations() - prevMetricOpt.get().getDonations();
+                                } else if (metric.getDonations() != null) {
+                                    // fallback: si no hay métrica previa, usar el valor actual (o podríamos usar 0)
+                                    deltaD = metric.getDonations();
+                                }
+                                if (deltaD != null) newVal = Double.valueOf(deltaD);
                                 break;
+                            }
                             case "battles":
-                            case "batallas":
-                                if (metric.getBattles() != null && metric.getBattles().getTotal() != null) newVal = Double.valueOf(metric.getBattles().getTotal());
+                            case "batallas": {
+                                Integer deltaB = null;
+                                if (metric.getBattles() != null && metric.getBattles().getTotal() != null) {
+                                    if (prevMetricOpt.isPresent() && prevMetricOpt.get().getBattles() != null && prevMetricOpt.get().getBattles().getTotal() != null) {
+                                        deltaB = metric.getBattles().getTotal() - prevMetricOpt.get().getBattles().getTotal();
+                                    } else {
+                                        // fallback: si no hay métrica previa, usar total (o 0). Preferimos usar total como fallback.
+                                        deltaB = metric.getBattles().getTotal();
+                                    }
+                                }
+                                if (deltaB != null) newVal = Double.valueOf(deltaB);
                                 break;
+                            }
                             default:
-                                // Si el metricType no se reconoce, intentar no modificar currentValue
+                                // Si el metricType no se reconoce, no modificar currentValue
                                 newVal = null;
                         }
+
                         if (newVal != null) {
                             g.setCurrentValue(newVal);
                             // Marcar completado si alcanza o supera el target
