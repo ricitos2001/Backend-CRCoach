@@ -6,6 +6,7 @@ import org.example.backendcrcoach.domain.dto.ClanResponseDTO;
 import org.example.backendcrcoach.domain.entities.Clan;
 import org.example.backendcrcoach.mappers.ClanMapper;
 import org.example.backendcrcoach.repositories.ClanRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -85,7 +86,18 @@ public class ClanService {
             return null;
         }
 
-        return clanRepository.save(clan);
+        try {
+            return clanRepository.save(clan);
+        } catch (DataIntegrityViolationException dive) {
+            // Puede ocurrir una condición de carrera: dos hilos intentan insertar el mismo clan
+            // (mismo badgeId) simultáneamente. Si otro hilo ya lo insertó, recuperamos la entidad
+            // existente y la devolvemos en lugar de propagar la excepción.
+            Long bid = clan.getBadgeId();
+            if (bid != null) {
+                return clanRepository.findById(bid).orElseGet(() -> clanRepository.findByTag(clan.getTag()).orElse(null));
+            }
+            return clanRepository.findByTag(clan.getTag()).orElse(null);
+        }
     }
 
     private String readText(JsonNode json, String field) {
