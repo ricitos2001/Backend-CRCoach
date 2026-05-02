@@ -28,7 +28,6 @@ import java.util.List;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @Transactional
@@ -334,8 +333,11 @@ public class PlayerProfileService {
         return PlayerProfileMapper.toDTO(savedProfile);
     }
 
-    public boolean existsLocallyOrInApi(String playerTag) {
-        if (existsByTag(playerTag)) {return true;}
+    public boolean existsLocal(String playerTag) {
+        return playerProfileRepository.findByTag(playerTag).isPresent();
+    }
+
+    public boolean exitsInApi(String playerTag) {
         String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTag);
         if (responseBody == null || responseBody.isBlank()) return false;
 
@@ -343,10 +345,6 @@ public class PlayerProfileService {
         if (node == null || node.isNull()) return false;
         if (node.has("reason")) return false;
         return node.has("tag") || node.has("name");
-    }
-
-    private boolean existsByTag(String tag) {
-        return playerProfileRepository.findByTag(tag).isPresent();
     }
 
     private boolean hasSnapshotRelevantChanges(PlayerProfile existing, PlayerProfile updated) {
