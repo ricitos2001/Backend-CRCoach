@@ -4,15 +4,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum Archetype {
-    // Arquetipos principales
     SIEGE,
     GRAVEYARD,
     BEATDOWN,
     BRIDGE_SPAM,
     CYCLE,
+    MIDRANGE,
     CONTROL,
 
-    // Sub-arquetipos / arquetipos específicos / condiciones de victoria
+    // Sub-arquetipos / arquetipos específicos
     X_BOW,
     MORTAR,
     GIANT,
@@ -26,11 +26,6 @@ public enum Archetype {
     ELIXIR_GOLEM,
     TWO_POINT_SIX,
     HOG_CYCLE,
-
-    // Arquetipos híbridos / especializados
-    BAIT,
-    SPLIT_LANE,
-    HYBRID,
 
     // Otras / fallback
     CUSTOM,
