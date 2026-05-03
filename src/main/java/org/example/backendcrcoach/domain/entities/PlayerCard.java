@@ -55,7 +55,8 @@ public class PlayerCard {
     @Column(name = "support_card")
     private Boolean supportCard;
 
-    @Transient
+    @Column(name = "use_type")
+    @Enumerated(EnumType.STRING)
     private CardUseType useType;
 
 }
