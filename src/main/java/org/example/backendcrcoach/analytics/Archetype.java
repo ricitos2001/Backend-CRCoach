@@ -10,7 +10,6 @@ public enum Archetype {
     BEATDOWN,
     BRIDGE_SPAM,
     CYCLE,
-    MIDRANGE,
     CONTROL,
 
     // Sub-arquetipos / arquetipos específicos / condiciones de victoria
@@ -39,7 +38,7 @@ public enum Archetype {
 
     @JsonCreator
     public static Archetype fromString(String key) {
-        if (key == null) return UNKNOWN;
+        if (key == null) return null;
         try {
             return Archetype.valueOf(key.toUpperCase());
         } catch (IllegalArgumentException e) {
@@ -48,7 +47,7 @@ public enum Archetype {
             try {
                 return Archetype.valueOf(normalized);
             } catch (IllegalArgumentException ex) {
-                return UNKNOWN;
+                return null;
             }
         }
     }
