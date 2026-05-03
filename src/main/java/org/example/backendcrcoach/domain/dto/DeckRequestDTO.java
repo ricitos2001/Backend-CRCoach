@@ -15,7 +15,6 @@ import java.util.List;
 @AllArgsConstructor
 public class DeckRequestDTO {
     private Archetype archetype;
-    private Integer deckIndex;
     private List<PlayerCard> playerCards;
 }
 

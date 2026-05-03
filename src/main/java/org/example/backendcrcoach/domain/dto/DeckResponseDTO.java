@@ -12,7 +12,6 @@ import java.util.List;
 public class DeckResponseDTO {
     private Long id;
     private Archetype archetype;
-    private Integer deckIndex;
     private List<PlayerCard> playerCards;
 }
 
