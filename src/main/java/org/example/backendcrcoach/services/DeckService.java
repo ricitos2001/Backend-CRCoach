@@ -3,6 +3,7 @@ package org.example.backendcrcoach.services;
 import jakarta.transaction.Transactional;
 import org.example.backendcrcoach.analytics.Archetype;
 import org.example.backendcrcoach.analytics.ArchetypeClassifier;
+import org.example.backendcrcoach.services.CardClassifierService;
 import org.example.backendcrcoach.domain.dto.DeckRequestDTO;
 import org.example.backendcrcoach.domain.dto.DeckResponseDTO;
 import org.example.backendcrcoach.domain.entities.Deck;
@@ -20,10 +21,12 @@ public class DeckService {
 
     private final DeckRepository deckRepository;
     private final ArchetypeClassifier archetypeClassifier;
+    private final CardClassifierService cardClassifierService;
 
-    public DeckService(DeckRepository deckRepository, ArchetypeClassifier archetypeClassifier) {
+    public DeckService(DeckRepository deckRepository, ArchetypeClassifier archetypeClassifier, CardClassifierService cardClassifierService) {
         this.deckRepository = deckRepository;
         this.archetypeClassifier = archetypeClassifier;
+        this.cardClassifierService = cardClassifierService;
     }
 
     public DeckResponseDTO create(DeckRequestDTO dto) {
@@ -77,6 +80,24 @@ public class DeckService {
             }
         } catch (Exception ignored) {
             throw new RuntimeException("Error al clasificar el arquetipo del deck: " + ignored.getMessage(), ignored);
+        }
+
+        // Antes de guardar, asegurarse de que cada PlayerCard tenga su useType calculado
+        try {
+            if (deck.getPlayerCards() != null && cardClassifierService != null) {
+                deck.getPlayerCards().forEach(pc -> {
+                    try {
+                        // sólo recalcular si es null para no sobrescribir valores explícitos
+                        if (pc.getUseType() == null) {
+                            pc.setUseType(cardClassifierService.classify(pc));
+                        }
+                    } catch (Exception ignored) {
+                        // No bloquear el guardado por un fallo en clasificación de una carta
+                    }
+                });
+            }
+        } catch (Exception ignored) {
+            // ignorar problemas de clasificación a nivel deck
         }
 
         // Guardar nuevo deck
