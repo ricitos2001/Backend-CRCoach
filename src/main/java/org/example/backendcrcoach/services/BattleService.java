@@ -255,7 +255,6 @@ public class BattleService {
             // Clasificar el tipo de uso (normal/evolution/hero) usando metadata del catálogo si procede
             try {
                 card.setUseType(cardClassifierService.classify(card));
-                log.debug("Clasificada carta id={} name={} como useType={}", card.getCardId(), card.getName(), card.getUseType());
             } catch (Exception ex) {
                 // No bloquear el parsing por un fallo en la clasificación
                 log.debug("Error clasificando carta {}: {}", card.getCardId(), ex.getMessage());

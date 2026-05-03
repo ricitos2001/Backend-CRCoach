@@ -28,8 +28,6 @@ import java.util.List;
 
 import java.util.Objects;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
@@ -328,22 +326,10 @@ public class PlayerProfileService {
         // Crear snapshot si las estadísticas cambiaron.
         // La importación asíncrona de batallas se encarga de crear snapshot si fue necesario.
         if (statsChanged) {
-            try {
-                snapshotService.saveSnapshot(savedProfile);
-            } catch (Exception ex) {
-                // Registrar el error pero no propagarlo para evitar marcar la transacción como rollback-only
-                // (snapshot fallo no debe impedir retornar el perfil al cliente)
-                Logger logger = LoggerFactory.getLogger(PlayerProfileService.class);
-                logger.error("Error al guardar snapshot para player {}: {}", savedProfile.getTag(), ex.getMessage(), ex);
-            }
+            snapshotService.saveSnapshot(savedProfile);
         }
         // Guardar/actualizar playerCards siempre (pueden cambiar aunque estadísticas no)
-        try {
-            playerCardService.saveCardsFromProfile(savedProfile);
-        } catch (Exception ex) {
-            Logger logger = LoggerFactory.getLogger(PlayerProfileService.class);
-            logger.error("Error al guardar playerCards para player {}: {}", savedProfile.getTag(), ex.getMessage(), ex);
-        }
+        playerCardService.saveCardsFromProfile(savedProfile);
         return PlayerProfileMapper.toDTO(savedProfile);
     }
 
@@ -351,7 +337,8 @@ public class PlayerProfileService {
         return playerProfileRepository.findByTag(playerTag).isPresent();
     }
 
-    public boolean exitsInApi(String playerTag) {String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTag);
+    public boolean exitsInApi(String playerTag) {
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTag);
         if (responseBody == null || responseBody.isBlank()) return false;
 
         JsonNode node = objectMapper.readTree(responseBody);
