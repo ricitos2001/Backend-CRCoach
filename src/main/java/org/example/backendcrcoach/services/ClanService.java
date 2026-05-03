@@ -87,7 +87,10 @@ public class ClanService {
         }
 
         try {
-            return clanRepository.save(clan);
+            // Force immediate DB write so constraint violations happen here and can be handled
+            // (otherwise Hibernate may defer insert until a later flush and the exception
+            // would escape this catch block).
+            return clanRepository.saveAndFlush(clan);
         } catch (DataIntegrityViolationException dive) {
             // Puede ocurrir una condición de carrera: dos hilos intentan insertar el mismo clan
             // (mismo badgeId) simultáneamente. Si otro hilo ya lo insertó, recuperamos la entidad

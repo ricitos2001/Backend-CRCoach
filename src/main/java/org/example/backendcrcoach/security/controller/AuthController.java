@@ -92,21 +92,23 @@ public class AuthController {
         // Si se encuentra el token, añadirlo a la blacklist
         if (jwt != null) {
             tokenBlacklistService.addTokenToBlacklist(jwt);
-
-            // Eliminar la cookie
-            Cookie jwtCookie = new Cookie("jwt", null);
-            jwtCookie.setPath("/");
-            jwtCookie.setHttpOnly(true);
-            jwtCookie.setSecure(true);
-            jwtCookie.setMaxAge(0); // Caducar inmediatamente
-            response.addCookie(jwtCookie);
-
-            return ResponseEntity.ok("Logout exitoso. Token añadido a la blacklist y cookie eliminada.");
+            log.debug("Token encontrado durante logout y añadido a la blacklist.");
+        } else {
+            log.debug("No se encontró token en la petición de logout. Procediendo a limpiar cookie de todos modos (idempotente).");
         }
+
+        // Eliminar/expirar la cookie en todos los casos (hacer logout idempotente)
+        Cookie jwtCookie = new Cookie("jwt", null);
+        jwtCookie.setPath("/");
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setSecure(true);
+        jwtCookie.setMaxAge(0); // Caducar inmediatamente
+        response.addCookie(jwtCookie);
 
         // Ya no intentamos detener tareas programadas en el logout (no existe el servicio de scheduling por usuario).
 
-        return ResponseEntity.badRequest().body("No se encontró un token válido para cerrar sesión.");
+        // Responder 200 OK incluso si no había token: logout es idempotente
+        return ResponseEntity.ok("Logout procesado. Si existía un token fue invalidado y la cookie ha sido eliminada.");
     }
 
     // Registro de usuario
