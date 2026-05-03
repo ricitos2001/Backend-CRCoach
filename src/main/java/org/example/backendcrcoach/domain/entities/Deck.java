@@ -23,6 +23,9 @@ public class Deck {
     @Enumerated(EnumType.STRING)
     private Archetype archetype;
 
+    @Column(name = "deck_index")
+    private Integer deckIndex;
+
     // Cartas del jugador que componen el deck
     @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     @JoinColumn(name = "deck_id") // crea la columna deck_id en la tabla player_cards

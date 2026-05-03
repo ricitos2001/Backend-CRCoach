@@ -95,23 +95,30 @@ public class DeckService {
                             pc.setUseType(cardClassifierService.classify(pc));
                         }
 
-                        // Aplicar heurística posicional: primera carta -> EVOLUTION, segunda -> HERO,
-                        // tercera -> EVOLUTION si puede, si no HERO; resto -> NORMAL (si no ya establecido)
-                        if (i == 0) {
-                            if (cardClassifierService.isEvolvable(pc)) {
-                                pc.setUseType(CardUseType.EVOLUTION);
-                            }
-                        } else if (i == 1) {
-                            if (cardClassifierService.isHeroCard(pc)) {
-                                pc.setUseType(CardUseType.HERO);
-                            }
-                        } else if (i == 2) {
-                            if (cardClassifierService.isEvolvable(pc)) {
-                                pc.setUseType(CardUseType.EVOLUTION);
-                            } else if (cardClassifierService.isHeroCard(pc)) {
-                                pc.setUseType(CardUseType.HERO);
+                        // Aplicar heurística posicional SOLO para deckIndex == 4 (si se conoce)
+                        Integer deckIndex = deck.getDeckIndex();
+                        if (deckIndex != null && deckIndex == 4) {
+                            if (i == 0) {
+                                if (cardClassifierService.isEvolvable(pc)) {
+                                    pc.setUseType(CardUseType.EVOLUTION);
+                                }
+                            } else if (i == 1) {
+                                if (cardClassifierService.isHeroCard(pc)) {
+                                    pc.setUseType(CardUseType.HERO);
+                                }
+                            } else if (i == 2) {
+                                if (cardClassifierService.isEvolvable(pc)) {
+                                    pc.setUseType(CardUseType.EVOLUTION);
+                                } else if (cardClassifierService.isHeroCard(pc)) {
+                                    pc.setUseType(CardUseType.HERO);
+                                }
+                            } else {
+                                if (pc.getUseType() == null) {
+                                    pc.setUseType(CardUseType.NORMAL);
+                                }
                             }
                         } else {
+                            // comportamiento por defecto: asegurar que las cartas no queden sin tipo
                             if (pc.getUseType() == null) {
                                 pc.setUseType(CardUseType.NORMAL);
                             }
