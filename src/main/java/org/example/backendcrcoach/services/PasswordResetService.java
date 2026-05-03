@@ -82,7 +82,7 @@ public class PasswordResetService {
             model.put("link", resetLink);
             model.put("user", user);
 
-            String subject = "Restablece tu contraseña - MemoWorks";
+            String subject = "Restablece tu contraseña - CRCoach";
 
             // enviar HTML con plantilla
             emailService.sendTemplateEmail(user.getEmail(), subject, "password-reset.html", model);
