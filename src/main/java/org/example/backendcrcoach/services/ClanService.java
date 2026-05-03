@@ -8,6 +8,7 @@ import org.example.backendcrcoach.mappers.ClanMapper;
 import org.example.backendcrcoach.repositories.ClanRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -87,20 +88,35 @@ public class ClanService {
         }
 
         try {
-            // Force immediate DB write so constraint violations happen here and can be handled
-            // (otherwise Hibernate may defer insert until a later flush and the exception
-            // would escape this catch block).
-            return clanRepository.saveAndFlush(clan);
+            // Ejecutar el INSERT/flush en una transacción nueva para poder capturar
+            // correctamente el DataIntegrityViolationException sin marcar la
+            // transacción del llamador como rollback-only.
+            return saveClanAndFlushInNewTx(clan);
         } catch (DataIntegrityViolationException dive) {
-            // Puede ocurrir una condición de carrera: dos hilos intentan insertar el mismo clan
-            // (mismo badgeId) simultáneamente. Si otro hilo ya lo insertó, recuperamos la entidad
-            // existente y la devolvemos en lugar de propagar la excepción.
+            // Condición de carrera: si otro hilo ya insertó el registro, recuperarlo
+            // en una transacción nueva para no utilizar la transacción actual (que
+            // puede estar marcada para rollback).
             Long bid = clan.getBadgeId();
             if (bid != null) {
-                return clanRepository.findById(bid).orElseGet(() -> clanRepository.findByTag(clan.getTag()).orElse(null));
+                return findClanByIdOrTagInNewTx(bid, clan.getTag());
             }
-            return clanRepository.findByTag(clan.getTag()).orElse(null);
+            return findClanByTagInNewTx(clan.getTag());
         }
+    }
+
+    @org.springframework.transaction.annotation.Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected Clan saveClanAndFlushInNewTx(Clan clan) {
+        return clanRepository.saveAndFlush(clan);
+    }
+
+    @org.springframework.transaction.annotation.Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    protected Clan findClanByIdOrTagInNewTx(Long bid, String tag) {
+        return clanRepository.findById(bid).orElseGet(() -> clanRepository.findByTag(tag).orElse(null));
+    }
+
+    @org.springframework.transaction.annotation.Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    protected Clan findClanByTagInNewTx(String tag) {
+        return clanRepository.findByTag(tag).orElse(null);
     }
 
     private String readText(JsonNode json, String field) {
