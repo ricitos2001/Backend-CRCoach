@@ -92,7 +92,7 @@ public class PasswordResetService {
         } catch (Exception e) {
             logger.error("Failed to send password reset email to {}: {}", user.getEmail(), e.getMessage());
             // fallback: log link para desarrollo
-            String resetLink = String.format("%s/reset-password?token=%s", frontendBaseUrl, rawToken);
+            String resetLink = String.format("%s/recover-password?token=%s", frontendBaseUrl, rawToken);
             logger.info("Password reset link (fallback log) for {}: {}", user.getEmail(), resetLink);
         }
     }
