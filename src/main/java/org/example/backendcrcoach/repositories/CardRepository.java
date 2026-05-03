@@ -7,5 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CardRepository extends JpaRepository<Card, Long> {
     Boolean existsByCardId(Integer cardId);
+    java.util.Optional<Card> findByCardId(Integer cardId);
 }
 

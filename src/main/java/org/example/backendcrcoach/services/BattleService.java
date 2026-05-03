@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.example.backendcrcoach.config.WebClientHelper;
+import org.example.backendcrcoach.services.CardClassifierService;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
 import org.example.backendcrcoach.domain.entities.Battle;
@@ -46,6 +47,7 @@ public class BattleService {
     private final GameModeService gameModeService;
     private final WebClientHelper webClientHelper;
     private final DeckService deckService;
+    private final CardClassifierService cardClassifierService;
     private final ApplicationContext applicationContext;
 
     public BattleService(
@@ -59,6 +61,7 @@ public class BattleService {
             GameModeService gameModeService,
             WebClientHelper webClientHelper,
             DeckService deckService,
+            CardClassifierService cardClassifierService,
             ApplicationContext applicationContext) {
         this.battleRepository = battleRepository;
         this.playerEntityRepository = playerEntityRepository;
@@ -72,6 +75,7 @@ public class BattleService {
         this.gameModeService = gameModeService;
         this.webClientHelper = webClientHelper;
         this.deckService = deckService;
+        this.cardClassifierService = cardClassifierService;
         this.applicationContext = applicationContext;
     }
 
@@ -251,6 +255,13 @@ public class BattleService {
                 icon.setMedium(readText(iconNode, "medium"));
                 icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
                 card.setIconUrl(icon);
+                // Clasificar el tipo de uso (normal/evolution/hero) usando metadata del catálogo si procede
+                try {
+                    card.setUseType(cardClassifierService.classify(card));
+                } catch (Exception ex) {
+                    // No bloquear el parsing por un fallo en la clasificación
+                    log.debug("Error clasificando carta {}: {}", card.getCardId(), ex.getMessage());
+                }
             }
 
             cards.add(card);

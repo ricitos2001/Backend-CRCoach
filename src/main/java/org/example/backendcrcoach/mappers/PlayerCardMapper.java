@@ -17,6 +17,7 @@ public class PlayerCardMapper {
         card.setCount(dto.getCount());
         card.setElixirCost(dto.getElixirCost());
         card.setIconUrl(dto.getIconUrl());
+        card.setUseType(dto.getUseType());
         return card;
     }
 
@@ -32,6 +33,7 @@ public class PlayerCardMapper {
                 card.getCount(),
                 card.getElixirCost(),
                 card.getIconUrl(),
+                card.getUseType(),
                 card.getPlayerProfile() != null ? card.getPlayerProfile().getTag() : null
         );
     }

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.example.backendcrcoach.domain.entities.IconUrl;
+import org.example.backendcrcoach.domain.enums.CardUseType;
 
 @Getter
 @Setter
@@ -20,5 +21,6 @@ public class PlayerCardRequestDTO {
     private Integer count;
     private Integer elixirCost;
     private IconUrl iconUrl;
+    private CardUseType useType;
 }
 
