@@ -10,6 +10,7 @@ public class SessionMapper {
         session.setTitle(dto.getTitle());
         session.setNotes(dto.getNotes());
         session.setMood(dto.getMood());
+        session.setEnfoque(dto.getEnfoque());
         session.setStartTime(dto.getStartTime());
         session.setEndTime(dto.getEndTime());
         session.setCreatedAt(dto.getCreatedAt());
@@ -23,6 +24,7 @@ public class SessionMapper {
                 session.getTitle(),
                 session.getNotes(),
                 session.getMood(),
+                session.getEnfoque(),
                 session.getStartTime().toString(),
                 session.getEndTime().toString(),
                 session.getCreatedAt().toString(),

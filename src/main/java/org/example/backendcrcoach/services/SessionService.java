@@ -73,6 +73,7 @@ public class SessionService {
         Optional.ofNullable(session.getTitle()).ifPresent(updatedSession::setTitle);
         Optional.ofNullable(session.getNotes()).ifPresent(updatedSession::setNotes);
         Optional.ofNullable(session.getMood()).ifPresent(updatedSession::setMood);
+        Optional.ofNullable(session.getEnfoque()).ifPresent(updatedSession::setEnfoque);
         Optional.ofNullable(session.getStartTime()).ifPresent(updatedSession::setStartTime);
         Optional.ofNullable(session.getEndTime()).ifPresent(updatedSession::setEndTime);
         Optional.ofNullable(session.getCreatedAt()).ifPresent(updatedSession::setCreatedAt);

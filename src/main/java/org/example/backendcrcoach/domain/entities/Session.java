@@ -20,6 +20,7 @@ public class Session {
     private String title;
     private String notes;
     private String mood;
+    private String enfoque;
     @Column(nullable = false)
     private LocalDateTime startTime;
     @Column(nullable = false)
