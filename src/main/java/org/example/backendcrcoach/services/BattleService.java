@@ -9,7 +9,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.scheduling.annotation.Async;
 import org.example.backendcrcoach.config.WebClientHelper;
 import org.example.backendcrcoach.services.CardClassifierService;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
@@ -30,7 +29,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -145,8 +143,7 @@ public class BattleService {
      * Evita duplicados basándose en el campo battleTime.
      * Devuelve el DTO de la última batalla guardada (o null si no se importó ninguna).
      */
-    @Async
-    public void importBattlesForPlayer(String playerTag) {
+    public BattleResponseDTO importBattlesForPlayer(String playerTag) {
         String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", playerTag);
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);
@@ -169,10 +166,9 @@ public class BattleService {
         }
 
         if (savedBattle == null) {
-            CompletableFuture.completedFuture(null);
-            return;
+            return null;
         }
-        CompletableFuture.completedFuture(BattleMapper.toDTO(savedBattle));
+        return BattleMapper.toDTO(savedBattle);
     }
 
     private Battle mapApiResponseToEntity(JsonNode json) {
@@ -255,13 +251,13 @@ public class BattleService {
                 icon.setMedium(readText(iconNode, "medium"));
                 icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
                 card.setIconUrl(icon);
-                // Clasificar el tipo de uso (normal/evolution/hero) usando metadata del catálogo si procede
-                try {
-                    card.setUseType(cardClassifierService.classify(card));
-                } catch (Exception ex) {
-                    // No bloquear el parsing por un fallo en la clasificación
-                    log.debug("Error clasificando carta {}: {}", card.getCardId(), ex.getMessage());
-                }
+            }
+            // Clasificar el tipo de uso (normal/evolution/hero) usando metadata del catálogo si procede
+            try {
+                card.setUseType(cardClassifierService.classify(card));
+            } catch (Exception ex) {
+                // No bloquear el parsing por un fallo en la clasificación
+                log.debug("Error clasificando carta {}: {}", card.getCardId(), ex.getMessage());
             }
 
             cards.add(card);

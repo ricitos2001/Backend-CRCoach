@@ -63,12 +63,15 @@ public class BattleController {
         battleService.deleteBattle(id);
         return ResponseEntity.noContent().build();
     }
-    @Operation(summary = "Importar batallas de jugador", description = "Importa batallas desde la API externa para un jugador dado su tag.")
+    @Operation(summary = "Importar batallas de jugador (síncrono)", description = "Importa batallas desde la API externa para un jugador dado su tag y devuelve el resultado.")
     @GetMapping("/import/{playerTag}")
-    public ResponseEntity<String> importForPlayer(@PathVariable String playerTag) {
-        // Lanzar la importación en segundo plano y devolver 202 Accepted inmediatamente.
-        battleService.importBattlesForPlayer(playerTag);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Import started for player " + playerTag);
+    public ResponseEntity<BattleResponseDTO> importForPlayer(@PathVariable String playerTag) {
+        // Ejecutar la importación de forma síncrona y devolver el DTO de la última batalla importada
+        BattleResponseDTO result = battleService.importBattlesForPlayer(playerTag);
+        if (result == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(result);
     }
 }
 
