@@ -17,7 +17,6 @@ import org.example.backendcrcoach.domain.entities.ProblematicCardsReport;
 import org.example.backendcrcoach.domain.entities.PlayerSummaryReport;
 import org.example.backendcrcoach.domain.entities.ArchetypeStat;
 import org.example.backendcrcoach.domain.entities.ProblematicCard;
-import org.example.backendcrcoach.domain.enums.CardUseType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
@@ -187,16 +186,6 @@ public class AnalyticsService {
                     dto.setPlayerLossRate(totalLosses == 0 ? 0.0 : ((double) e.getValue()) / totalLosses);
                     // Seleccionar icono según el tipo de uso de la carta (hero / evolution / normal)
                     String icon = null;
-                    if (pc != null && pc.getIconUrl() != null) {
-                        CardUseType ut = pc.getUseType();
-                        if (ut == CardUseType.HERO) {
-                            icon = pc.getIconUrl().getHeroMedium();
-                        } else if (ut == CardUseType.EVOLUTION) {
-                            icon = pc.getIconUrl().getEvolutionMedium();
-                        } else {
-                            icon = pc.getIconUrl().getMedium();
-                        }
-                    }
                     dto.setIconUrl(icon);
                     return dto;
                 })

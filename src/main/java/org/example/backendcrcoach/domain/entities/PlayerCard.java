@@ -2,7 +2,6 @@ package org.example.backendcrcoach.domain.entities;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.backendcrcoach.domain.enums.CardUseType;
 
 @Entity
 @Getter
@@ -54,9 +53,4 @@ public class PlayerCard {
 
     @Column(name = "support_card")
     private Boolean supportCard;
-
-    @Column(name = "use_type")
-    @Enumerated(EnumType.STRING)
-    private CardUseType useType;
-
 }
