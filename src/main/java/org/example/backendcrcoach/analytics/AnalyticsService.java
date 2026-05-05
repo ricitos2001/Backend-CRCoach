@@ -186,13 +186,7 @@ public class AnalyticsService {
                     dto.setPlayerLossRate(totalLosses == 0 ? 0.0 : ((double) e.getValue()) / totalLosses);
                     String icon = null;
                     if (pc != null && pc.getIconUrl() != null) {
-                        if (pc.getIconUrl().getHeroMedium() != null && !pc.getIconUrl().getHeroMedium().isBlank()) {
-                            icon = pc.getIconUrl().getHeroMedium();
-                        } else if (pc.getIconUrl().getEvolutionMedium() != null && !pc.getIconUrl().getEvolutionMedium().isBlank()) {
-                            icon = pc.getIconUrl().getEvolutionMedium();
-                        } else if (pc.getIconUrl().getMedium() != null && !pc.getIconUrl().getMedium().isBlank()) {
-                            icon = pc.getIconUrl().getMedium();
-                        }
+                        icon = pc.getIconUrl().getMedium();
                     }
                     dto.setIconUrl(icon);
                     return dto;
