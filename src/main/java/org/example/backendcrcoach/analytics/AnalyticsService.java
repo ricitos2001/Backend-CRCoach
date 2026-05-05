@@ -184,8 +184,16 @@ public class AnalyticsService {
                     dto.setName(pc != null ? pc.getName() : null);
                     dto.setAppearances(e.getValue());
                     dto.setPlayerLossRate(totalLosses == 0 ? 0.0 : ((double) e.getValue()) / totalLosses);
-                    // Seleccionar icono según el tipo de uso de la carta (hero / evolution / normal)
                     String icon = null;
+                    if (pc != null && pc.getIconUrl() != null) {
+                        if (pc.getIconUrl().getHeroMedium() != null && !pc.getIconUrl().getHeroMedium().isBlank()) {
+                            icon = pc.getIconUrl().getHeroMedium();
+                        } else if (pc.getIconUrl().getEvolutionMedium() != null && !pc.getIconUrl().getEvolutionMedium().isBlank()) {
+                            icon = pc.getIconUrl().getEvolutionMedium();
+                        } else if (pc.getIconUrl().getMedium() != null && !pc.getIconUrl().getMedium().isBlank()) {
+                            icon = pc.getIconUrl().getMedium();
+                        }
+                    }
                     dto.setIconUrl(icon);
                     return dto;
                 })
