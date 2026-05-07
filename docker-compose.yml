@@ -1,10 +1,10 @@
 version: "3.9"
 
 services:
-  postgres-db:
+  Backend-CRCoach:
     env_file:
       - .env
-    container_name: crcoach-postgres
+    container_name: backend-crcoach
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
@@ -14,7 +14,7 @@ services:
     ports:
       - "${PGPORT}:5432"
     volumes:
-      - crcoach_db_data:/var/lib/postgresql/data
+      - memoWorks_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
       interval: 10s
@@ -38,22 +38,10 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
       SERVER_PORT: 8080
     depends_on:
-      postgres-db:
+      Backend-CRCoach:
         condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
 
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: crcoach-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./frontend-dist:/usr/share/nginx/html:ro
-    depends_on:
-      - app
-
 volumes:
-  crcoach_db_data: {}
+  CRCoach_db_data: {}
