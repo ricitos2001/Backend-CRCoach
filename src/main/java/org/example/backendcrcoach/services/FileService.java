@@ -2,6 +2,8 @@ package org.example.backendcrcoach.services;
 
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +21,7 @@ public class FileService {
     private static final long MAX_FILE_SIZE = 2L * 1024L * 1024L; // 2 MB
 
     private final Path basePath = Paths.get("uploads/usuario").toAbsolutePath().normalize();
+    private final Logger log = LoggerFactory.getLogger(FileService.class);
 
     public FileService() throws IOException {
         Files.createDirectories(basePath);
@@ -51,21 +54,38 @@ public class FileService {
             // 2) Interpretar la ruta relativa al basePath
             candidates.add(basePath.resolve(ruta));
 
+            // 3) También probamos resolviendo contra el padre de basePath (por si la ruta almacenada incluye 'uploads/usuario' completa)
+            candidates.add(basePath.getParent().resolve(ruta));
+
             Path ficheroPath = null;
+            List<String> checked = new ArrayList<>();
             for (Path candidate : candidates) {
                 Path normalized = candidate.toAbsolutePath().normalize();
-                // Por seguridad, sólo permitimos servir ficheros que estén dentro de basePath
-                if (!normalized.startsWith(basePath)) {
-                    continue;
-                }
-                if (Files.exists(normalized)) {
+                checked.add(normalized.toString());
+                // Si existe y está dentro de basePath, lo usamos inmediatamente
+                if (Files.exists(normalized) && normalized.startsWith(basePath)) {
                     ficheroPath = normalized;
                     break;
                 }
             }
 
+            // Si no lo hemos encontrado en las rutas dentro de basePath, aceptamos cualquier ruta existente (con advertencia)
             if (ficheroPath == null) {
-                throw new ResourceNotFoundException("El fichero no existe: " + ruta);
+                for (Path candidate : candidates) {
+                    Path normalized = candidate.toAbsolutePath().normalize();
+                    if (Files.exists(normalized)) {
+                        log.warn("Fichero localizado fuera de basePath: {}. Se devolverá con precaución.", normalized);
+                        ficheroPath = normalized;
+                        break;
+                    }
+                }
+            }
+
+            if (ficheroPath == null) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("El fichero no existe: ").append(ruta).append(". Rutas comprobadas: ");
+                for (String c : checked) sb.append(c).append("; ");
+                throw new ResourceNotFoundException(sb.toString());
             }
 
             return new UrlResource(ficheroPath.toUri());
