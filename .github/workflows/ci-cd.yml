@@ -1,0 +1,52 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build and run tests
+        working-directory: ./Backend-CRCoach
+        run: mvn -B -DskipTests=false verify
+
+  docker_build:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image (local tag)
+        run: |
+          docker build --file Backend-CRCoach/Dockerfile -t backend-crcoach:latest Backend-CRCoach
+
+      - name: Push image to registry (optional)
+        if: ${{ secrets.GHCR_USERNAME && secrets.GHCR_TOKEN }}
+        uses: docker/build-push-action@v4
+        with:
+          context: ./Backend-CRCoach
+          file: ./Backend-CRCoach/Dockerfile
+          push: true
+          tags: ${{ secrets.GHCR_USERNAME }}/backend-crcoach:latest
+

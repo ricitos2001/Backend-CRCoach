@@ -1,10 +1,10 @@
 version: "3.9"
 
 services:
-  Backend-CRCoach:
+  db:
     env_file:
       - .env
-    container_name: backend-crcoach
+    container_name: crcoach_db
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
@@ -14,12 +14,14 @@ services:
     ports:
       - "${PGPORT}:5432"
     volumes:
-      - memoWorks_db_data:/var/lib/postgresql/data
+      - crcoach_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - crcoach_net
 
   app:
     env_file:
@@ -32,16 +34,23 @@ services:
     ports:
       - "${PORT}:8080"
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}?sslmode=require"
+      # Use internal Docker hostname 'db' to connect from the app container to Postgres
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://db:${PGPORT}/${PGDATABASE}?sslmode=disable"
       SPRING_DATASOURCE_USERNAME: ${PGUSER}
       SPRING_DATASOURCE_PASSWORD: ${PGPASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
       SERVER_PORT: 8080
     depends_on:
-      Backend-CRCoach:
+      db:
         condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
+    networks:
+      - crcoach_net
 
 volumes:
-  CRCoach_db_data: {}
+  crcoach_db_data: {}
+
+networks:
+  crcoach_net:
+    driver: bridge
