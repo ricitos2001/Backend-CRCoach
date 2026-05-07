@@ -25,7 +25,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/api/v1/users", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/users")
 
 public class UserController {
 
@@ -122,10 +122,10 @@ public class UserController {
     public ResponseEntity<Resource> obtenerAvatarUsuarioLogueado() {
         Resource avatar = userService.obtenerAvatarGenerico(null);
         try {
-            Path avatarPath = Paths.get(avatar.getURL().getPath());
-            MediaType mediaType = determinarMediaType(avatarPath);
+            MediaType mediaType = determinarMediaType(avatar);
+            String filename = avatar.getFilename() != null ? avatar.getFilename() : "avatar";
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "inline; filename=\"" + avatar.getFilename() + "\"")
+                    .header("Content-Disposition", "inline; filename=\"" + filename + "\"")
                     .contentType(mediaType)
                     .body(avatar);
         } catch (IOException e) {
@@ -138,10 +138,10 @@ public class UserController {
     public ResponseEntity<Resource> obtenerAvatar(@PathVariable(name = "id") Long id) {
         Resource avatar = userService.obtenerAvatarGenerico(id);
         try {
-            Path avatarPath = Paths.get(avatar.getURL().getPath());
-            MediaType mediaType = determinarMediaType(avatarPath);
+            MediaType mediaType = determinarMediaType(avatar);
+            String filename = avatar.getFilename() != null ? avatar.getFilename() : "avatar";
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "inline; filename=\"" + avatar.getFilename() + "\"")
+                    .header("Content-Disposition", "inline; filename=\"" + filename + "\"")
                     .contentType(mediaType)
                     .body(avatar);
         } catch (IOException e) {
@@ -164,6 +164,40 @@ public class UserController {
             };
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al determinar el tipo de contenido", e);
+        }
+    }
+
+    private MediaType determinarMediaType(Resource resource) throws IOException {
+        // Intentamos resolver el tipo de contenido a partir del Resource
+        // 1) Si es un UrlResource que apunta a un fichero físico, usamos probeContentType
+        try {
+            if (resource instanceof org.springframework.core.io.UrlResource) {
+                java.net.URL url = resource.getURL();
+                try {
+                    java.nio.file.Path p = Paths.get(url.toURI());
+                    return determinarMediaType(p);
+                } catch (Exception ignored) {
+                    // seguimos intentando con el stream
+                }
+            }
+
+            // 2) Intentamos adivinar leyendo el stream
+            try (java.io.InputStream is = resource.getInputStream()) {
+                String guessed = java.net.URLConnection.guessContentTypeFromStream(is);
+                if (guessed != null) {
+                    return switch (guessed.toLowerCase()) {
+                        case "image/jpeg" -> MediaType.IMAGE_JPEG;
+                        case "image/png" -> MediaType.IMAGE_PNG;
+                        case "image/gif" -> MediaType.IMAGE_GIF;
+                        default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato de imagen no soportado: " + guessed);
+                    };
+                }
+            }
+
+            // 3) Si no sabemos, fallback a image/png
+            return MediaType.IMAGE_PNG;
+        } catch (IOException e) {
+            throw e;
         }
     }
 }

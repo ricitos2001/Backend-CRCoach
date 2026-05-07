@@ -46,6 +46,33 @@ public class FileService {
                 throw new ResourceNotFoundException("Ruta de fichero nula o vacía");
             }
 
+            // Soporte para data URLs (avatar almacenado en la BD como data:image/...;base64,...)
+            if (ruta.startsWith("data:")) {
+                // Formato: data:[<mediatype>][;base64],<data>
+                int comma = ruta.indexOf(',');
+                if (comma <= 0) throw new ResourceNotFoundException("Data URL inválida para el avatar");
+                String meta = ruta.substring(5, comma); // after 'data:' up to comma
+                String dataPart = ruta.substring(comma + 1);
+                byte[] bytes;
+                if (meta.endsWith(";base64") || meta.contains(";base64")) {
+                    bytes = java.util.Base64.getDecoder().decode(dataPart);
+                } else {
+                    // URL-encoded data
+                    bytes = java.net.URLDecoder.decode(dataPart, java.nio.charset.StandardCharsets.UTF_8).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                }
+                // Devolvemos como ByteArrayResource (implementa Resource)
+                return new org.springframework.core.io.ByteArrayResource(bytes) {
+                    @Override
+                    public String getFilename() {
+                        // intentamos deducir extensión del mediatype
+                        String mt = meta.split(";")[0];
+                        String ext = "";
+                        if (mt.contains("/")) ext = mt.substring(mt.indexOf('/') + 1);
+                        return "avatar." + (ext.isEmpty() ? "bin" : ext);
+                    }
+                };
+            }
+
             // Probamos varias opciones para localizar el fichero (compatibilidad con rutas antiguas)
             List<Path> candidates = new ArrayList<>();
 
@@ -55,29 +82,16 @@ public class FileService {
             candidates.add(basePath.resolve(ruta));
 
             // 3) También probamos resolviendo contra el padre de basePath (por si la ruta almacenada incluye 'uploads/usuario' completa)
-            candidates.add(basePath.getParent().resolve(ruta));
+            if (basePath.getParent() != null) candidates.add(basePath.getParent().resolve(ruta));
 
             Path ficheroPath = null;
             List<String> checked = new ArrayList<>();
             for (Path candidate : candidates) {
                 Path normalized = candidate.toAbsolutePath().normalize();
                 checked.add(normalized.toString());
-                // Si existe y está dentro de basePath, lo usamos inmediatamente
-                if (Files.exists(normalized) && normalized.startsWith(basePath)) {
+                if (Files.exists(normalized)) {
                     ficheroPath = normalized;
                     break;
-                }
-            }
-
-            // Si no lo hemos encontrado en las rutas dentro de basePath, aceptamos cualquier ruta existente (con advertencia)
-            if (ficheroPath == null) {
-                for (Path candidate : candidates) {
-                    Path normalized = candidate.toAbsolutePath().normalize();
-                    if (Files.exists(normalized)) {
-                        log.warn("Fichero localizado fuera de basePath: {}. Se devolverá con precaución.", normalized);
-                        ficheroPath = normalized;
-                        break;
-                    }
                 }
             }
 
