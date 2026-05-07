@@ -8,6 +8,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
+import java.util.ArrayList;
+
+import org.example.backendcrcoach.web.exceptions.ResourceNotFoundException;
 
 @Service
 public class FileService {
@@ -15,7 +18,7 @@ public class FileService {
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
     private static final long MAX_FILE_SIZE = 2L * 1024L * 1024L; // 2 MB
 
-    private final Path basePath = Paths.get("uploads/usuario");
+    private final Path basePath = Paths.get("uploads/usuario").toAbsolutePath().normalize();
 
     public FileService() throws IOException {
         Files.createDirectories(basePath);
@@ -26,19 +29,45 @@ public class FileService {
         validarTamanoFichero(fichero);
         String originalFilename = fichero.getOriginalFilename();
         String filename = (originalFilename == null || originalFilename.isBlank()) ? "archivo_por_defecto" : sanitizeFilename(originalFilename);
-        Path userDir = basePath.resolve(String.valueOf(usuarioId));
+        Path userDir = basePath.resolve(String.valueOf(usuarioId)).normalize();
         Files.createDirectories(userDir);
-        Path rutaFichero = userDir.resolve(filename);
+        Path rutaFichero = userDir.resolve(filename).normalize();
         Files.copy(fichero.getInputStream(), rutaFichero, StandardCopyOption.REPLACE_EXISTING);
-        return rutaFichero.toString();
+        // Guardamos únicamente la ruta relativa a basePath para evitar inconsistencias
+        return basePath.relativize(rutaFichero).toString().replace("\\", "/");
     }
 
     public Resource cargarFichero(String ruta) {
         try {
-            Path ficheroPath = Paths.get(ruta);
-            if (!Files.exists(ficheroPath)) {
-                throw new NoSuchFileException("El fichero no existe: " + ruta);
+            if (ruta == null || ruta.isBlank()) {
+                throw new ResourceNotFoundException("Ruta de fichero nula o vacía");
             }
+
+            // Probamos varias opciones para localizar el fichero (compatibilidad con rutas antiguas)
+            List<Path> candidates = new ArrayList<>();
+
+            // 1) Interpretar la ruta tal cual (relativa al working dir o absoluta)
+            candidates.add(Paths.get(ruta));
+            // 2) Interpretar la ruta relativa al basePath
+            candidates.add(basePath.resolve(ruta));
+
+            Path ficheroPath = null;
+            for (Path candidate : candidates) {
+                Path normalized = candidate.toAbsolutePath().normalize();
+                // Por seguridad, sólo permitimos servir ficheros que estén dentro de basePath
+                if (!normalized.startsWith(basePath)) {
+                    continue;
+                }
+                if (Files.exists(normalized)) {
+                    ficheroPath = normalized;
+                    break;
+                }
+            }
+
+            if (ficheroPath == null) {
+                throw new ResourceNotFoundException("El fichero no existe: " + ruta);
+            }
+
             return new UrlResource(ficheroPath.toUri());
         } catch (IOException e) {
             throw new RuntimeException("Error al cargar el fichero: " + ruta, e);
