@@ -76,7 +76,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:4200", "https://frontend-crcoach.onrender.com"));
+        // Allow local development origins (different ports) and the deployed frontend origin
+        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:4200", "http://localhost", "http://127.0.0.1", "https://frontend-crcoach.onrender.com"));
+        // Also accept localhost on any port (helps with development servers that use different ports)
+        config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
