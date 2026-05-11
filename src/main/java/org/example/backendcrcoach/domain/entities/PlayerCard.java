@@ -30,6 +30,9 @@ public class PlayerCard {
     private Integer maxLevel;
 
     @Column
+    private Integer evolutionLevel;
+
+    @Column
     private Integer maxEvolutionLevel;
 
     @Column

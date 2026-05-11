@@ -236,6 +236,7 @@ public class BattleService {
             card.setName(readText(c, "name"));
             card.setLevel(readInteger(c, "level"));
             card.setMaxLevel(readInteger(c, "maxLevel"));
+            card.setEvolutionLevel(readInteger(c, "evolutionLevel"));
             card.setMaxEvolutionLevel(readInteger(c, "maxEvolutionLevel"));
             card.setRarity(readText(c, "rarity"));
             card.setElixirCost(readInteger(c, "elixirCost"));
@@ -246,6 +247,7 @@ public class BattleService {
                 IconUrl icon = new IconUrl();
                 icon.setMedium(readText(iconNode, "medium"));
                 icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
+                icon.setHeroMedium(readText(iconNode, "heroMedium"));
                 card.setIconUrl(icon);
             }
 

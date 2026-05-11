@@ -12,6 +12,7 @@ public class PlayerCardResponseDTO {
     private String name;
     private Integer level;
     private Integer maxLevel;
+    private Integer evolutionLevel;
     private Integer maxEvolutionLevel;
     private String rarity;
     private Integer count;

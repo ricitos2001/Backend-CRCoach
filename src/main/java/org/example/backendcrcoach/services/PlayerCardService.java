@@ -89,6 +89,7 @@ public class PlayerCardService {
         card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asString() : null);
         card.setLevel(s.has("level") && !s.get("level").isNull() ? s.get("level").asInt() : null);
         card.setMaxLevel(s.has("maxLevel") && !s.get("maxLevel").isNull() ? s.get("maxLevel").asInt() : null);
+        card.setEvolutionLevel(s.has("evolutionLevel") && !s.get("evolutionLevel").isNull() ? s.get("evolutionLevel").asInt() : null);
         card.setMaxEvolutionLevel(s.has("maxEvolutionLevel") && !s.get("maxEvolutionLevel").isNull() ? s.get("maxEvolutionLevel").asInt() : null);
         card.setRarity(s.has("rarity") && !s.get("rarity").isNull() ? s.get("rarity").asString() : null);
         card.setCount(s.has("count") && !s.get("count").isNull() ? s.get("count").asInt() : null);
