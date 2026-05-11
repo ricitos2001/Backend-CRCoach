@@ -278,9 +278,4 @@ public class BattleService {
         JsonNode node = json.get(field);
         return node == null || node.isNull() ? null : node.asBoolean();
     }
-
-    private String readJsonText(JsonNode json, String field) {
-        JsonNode node = json.get(field);
-        return node == null || node.isNull() ? null : node.toString();
-    }
 }

@@ -99,6 +99,7 @@ public class PlayerCardService {
             IconUrl iconUrl2 = new IconUrl();
             iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? objectMapper.convertValue(iconNode2.get("medium"), String.class) : null);
             iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? objectMapper.convertValue(iconNode2.get("evolutionMedium"), String.class) : null);
+            iconUrl2.setHeroMedium(iconNode2.has("heroMedium") && !iconNode2.get("heroMedium").isNull() ? objectMapper.convertValue(iconNode2.get("heroMedium"), String.class) : null);
             card.setIconUrl(iconUrl2);
         }
         return card;
