@@ -7,6 +7,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -35,13 +36,35 @@ public class FileService {
     private final Path basePath;
     private final Logger log = LoggerFactory.getLogger(FileService.class);
 
-    public FileService() throws IOException {
+    public FileService(@Value("${app.upload.base-path:uploads/usuario}") String basePathStr) throws IOException {
 
-        this.basePath = Paths.get("uploads/usuario")
-                .toAbsolutePath()
-                .normalize();
+        // Allow configuring the uploads base path via application properties (app.upload.base-path).
+        // Default is "uploads/usuario" (relative to the working directory). We normalize to an absolute path.
+        Path configured = Paths.get(basePathStr).toAbsolutePath().normalize();
 
-        Files.createDirectories(basePath);
+        if (Files.exists(configured) && Files.isDirectory(configured)) {
+            this.basePath = configured;
+        } else {
+            // Try walking up from the current working directory to find an existing uploads/usuario folder
+            Path cwd = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
+            Path found = null;
+            for (int i = 0; i < 6 && cwd != null; i++) {
+                Path candidate = cwd.resolve("uploads/usuario").toAbsolutePath().normalize();
+                if (Files.exists(candidate) && Files.isDirectory(candidate)) {
+                    found = candidate;
+                    break;
+                }
+                cwd = cwd.getParent();
+            }
+
+            if (found != null) {
+                this.basePath = found;
+            } else {
+                // Fallback: use the configured path (will be created)
+                this.basePath = configured;
+                Files.createDirectories(this.basePath);
+            }
+        }
 
         log.info("Base path uploads: {}", basePath);
     }

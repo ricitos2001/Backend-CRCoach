@@ -11,6 +11,7 @@ import org.example.backendcrcoach.repositories.UserRepository;
 import org.example.backendcrcoach.web.exceptions.ResourceNotFoundException;
 import org.example.backendcrcoach.web.exceptions.DuplicatedUserException;
 import org.example.backendcrcoach.web.exceptions.UserNotFoundException;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -171,9 +172,30 @@ public class UserService {
     public Resource obtenerAvatarGenerico(Long id) {
         User usuario = (id == null) ? obtenerMiPerfil() : obtenerUsuarioPorId(id);
         if (usuario.getAvatarUrl() == null || usuario.getAvatarUrl().isEmpty()) {
-            throw new ResourceNotFoundException("El usuario no tiene un avatar asignado.");
+            // If user hasn't set an avatar, return a tiny transparent PNG as fallback
+            byte[] transparentPng = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=");
+            return new ByteArrayResource(transparentPng) {
+                @Override
+                public String getFilename() {
+                    return "default.png";
+                }
+            };
         }
-        return fileService.cargarFichero(usuario.getAvatarUrl());
+
+        try {
+            return fileService.cargarFichero(usuario.getAvatarUrl());
+        } catch (ResourceNotFoundException ex) {
+            // Si el fichero referenciado no existe en disco, devolvemos la imagen por defecto (1x1 PNG)
+            byte[] transparentPng = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=");
+            return new ByteArrayResource(transparentPng) {
+                @Override
+                public String getFilename() {
+                    return "default.png";
+                }
+            };
+        }
     }
 
     public void guardarAvatar(Long usuarioId, MultipartFile avatar) throws IOException {
