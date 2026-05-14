@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.CorsConfigurationSource;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @Configuration
@@ -64,7 +65,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/battles", "/api/v1/cards", "/api/v1/goals", "/api/v1/player_cards", "/api/v1/player_profiles", "/api/v1/sessions", "/api/v1/snapshots", "/api/v1/users", "/api/v1/arenas", "/api/v1/clans", "/api/v1/decks", "/api/v1/player_entities", "/api/v1/seasons", "/api/v1/league_stadistics", "/api/v1/metrics", "/api/v1/active_goals", "/api/v1/most_advanced", "/api/v1/streaks", "/api/v1/winrates", "/api/v1/analytics", "/api/v1/notifications").hasAnyRole("USER")
                         .anyRequest().authenticated()
                 )
-                .httpBasic(Customizer.withDefaults())
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        })
+                )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
