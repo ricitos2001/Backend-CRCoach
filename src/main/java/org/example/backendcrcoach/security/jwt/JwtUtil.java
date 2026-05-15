@@ -5,10 +5,13 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,8 +20,25 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256); // Clave generada automáticamente
+    private Key key;
     private final long jwtExpiration = 1000 * 60 * 60 * 10L; // 10 horas
+
+    @Value("${JWT_SECRET:}")
+    private String jwtSecret;
+
+    @PostConstruct
+    public void init() {
+        if (jwtSecret != null && !jwtSecret.isBlank()) {
+            try {
+                byte[] keyBytes = Base64.getDecoder().decode(jwtSecret);
+                key = Keys.hmacShaKeyFor(keyBytes);
+            } catch (Exception e) {
+                key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            }
+        } else {
+            key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        }
+    }
 
     // Extraer el nombre de usuario del token
     public String extractUsername(String token) {
