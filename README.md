@@ -467,7 +467,7 @@ Distribuido bajo licencia MIT. Ver [LICENSE](LICENSE).
 - Prototipo en Figma: https://www.figma.com/design/VztmIawRHGdIuaUTIr0zf5/proyecto-CRCoach?m=auto&t=5PKLQ0HYuDcRaECw-1
 - Repositorio del frontend: https://github.com/ricitos2001/Frontend-CRCoach.git
 - Repositorio del backend: https://github.com/ricitos2001/Backend-CRCoach.git
-- URL del frontend: https://frontend-crcoach.onrender.com
-- URL del backend: https://backend-crcoach.onrender.com
+- URL del frontend: https://crcoach.onrender.com
+- URL del backend: https://crcoachapi.onrender.com
 - Documentación del frontend desplegada con github pages: https://ricitos2001.github.io/Backend-CRCoach/
 - Documentación del frontend desplegada con github pages: https://ricitos2001.github.io/Frontend-CRCoach/
