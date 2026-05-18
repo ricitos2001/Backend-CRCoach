@@ -89,6 +89,7 @@ public class PlayerCardService {
         card.setName(s.has("name") && !s.get("name").isNull() ? s.get("name").asString() : null);
         card.setLevel(s.has("level") && !s.get("level").isNull() ? s.get("level").asInt() : null);
         card.setMaxLevel(s.has("maxLevel") && !s.get("maxLevel").isNull() ? s.get("maxLevel").asInt() : null);
+        card.setEvolutionLevel(s.has("evolutionLevel") && !s.get("evolutionLevel").isNull() ? s.get("evolutionLevel").asInt() : null);
         card.setMaxEvolutionLevel(s.has("maxEvolutionLevel") && !s.get("maxEvolutionLevel").isNull() ? s.get("maxEvolutionLevel").asInt() : null);
         card.setRarity(s.has("rarity") && !s.get("rarity").isNull() ? s.get("rarity").asString() : null);
         card.setCount(s.has("count") && !s.get("count").isNull() ? s.get("count").asInt() : null);
@@ -98,6 +99,7 @@ public class PlayerCardService {
             IconUrl iconUrl2 = new IconUrl();
             iconUrl2.setMedium(iconNode2.has("medium") && !iconNode2.get("medium").isNull() ? objectMapper.convertValue(iconNode2.get("medium"), String.class) : null);
             iconUrl2.setEvolutionMedium(iconNode2.has("evolutionMedium") && !iconNode2.get("evolutionMedium").isNull() ? objectMapper.convertValue(iconNode2.get("evolutionMedium"), String.class) : null);
+            iconUrl2.setHeroMedium(iconNode2.has("heroMedium") && !iconNode2.get("heroMedium").isNull() ? objectMapper.convertValue(iconNode2.get("heroMedium"), String.class) : null);
             card.setIconUrl(iconUrl2);
         }
         return card;

@@ -1,20 +1,21 @@
 version: "3.9"
 
 services:
-  Backend-CRCoach:
+  postgres:
     env_file:
       - .env
-    container_name: backend-crcoach
+    container_name: crcoach-postgres
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${PGDATABASE}
       POSTGRES_USER: ${PGUSER}
       POSTGRES_PASSWORD: ${PGPASSWORD}
-    ports:
-      - "${PGPORT}:5432"
+    # Sin exponer puerto al host — solo red interna
+    networks:
+      - crcoach_net
     volumes:
-      - memoWorks_db_data:/var/lib/postgresql/data
+      - crcoach_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
       interval: 10s
@@ -32,16 +33,22 @@ services:
     ports:
       - "${PORT}:8080"
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}?sslmode=require"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:${PGPORT}/${PGDATABASE}"
       SPRING_DATASOURCE_USERNAME: ${PGUSER}
       SPRING_DATASOURCE_PASSWORD: ${PGPASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
-      SERVER_PORT: 8080
+      SERVER_PORT: ${PORT}
     depends_on:
-      Backend-CRCoach:
+      postgres:
         condition: service_healthy
+    networks:
+      - crcoach_net
     volumes:
       - ./uploads:/app/uploads
 
+networks:
+  crcoach_net:
+    driver: bridge
+
 volumes:
-  CRCoach_db_data: {}
+  crcoach_db_data: {}

@@ -4,6 +4,9 @@ import org.example.backendcrcoach.domain.dto.PlayerEntityRequestDTO;
 import org.example.backendcrcoach.domain.dto.PlayerEntityResponseDTO;
 import org.example.backendcrcoach.domain.entities.PlayerEntity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PlayerEntityMapper {
 
     public static PlayerEntity toEntity(PlayerEntityRequestDTO dto) {
@@ -26,6 +29,7 @@ public class PlayerEntityMapper {
     }
 
     public static PlayerEntityResponseDTO toDTO(PlayerEntity entity) {
+
         return new PlayerEntityResponseDTO(
                 entity.getId(),
                 entity.getTag(),
@@ -34,7 +38,7 @@ public class PlayerEntityMapper {
                 entity.getTrophyChange(),
                 entity.getCrowns(),
                 entity.getKingTowerHitPoints(),
-                entity.getPrincessTowersHitPoints(),
+                entity.getPrincessTowersHitPoints() != null ? new ArrayList<>(entity.getPrincessTowersHitPoints()) : null,
                 entity.getClan() != null ? entity.getClan().getTag() : null,
                 entity.getClan() != null ? entity.getClan().getName() : null,
                 entity.getGlobalRank(),

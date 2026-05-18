@@ -9,10 +9,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
  public interface BattleRepository extends JpaRepository<Battle, Long>, JpaSpecificationExecutor<Battle> {
 	Boolean existsByBattleTime(String battleTime);
+	// Recuperar una batalla por su battleTime (si existe)
+	Optional<Battle> findFirstByBattleTime(String battleTime);
 
 	// Obtener batallas de un jugador ordenadas por tiempo (reciente primero) con paginación
 	List<Battle> findByTeamTagOrderByBattleTimeDesc(String playerTag, Pageable pageable);

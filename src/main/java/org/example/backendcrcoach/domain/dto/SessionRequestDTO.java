@@ -16,6 +16,7 @@ public class SessionRequestDTO {
     private String title;
     private String notes;
     private String mood;
+    private String enfoque;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private LocalDateTime createdAt;

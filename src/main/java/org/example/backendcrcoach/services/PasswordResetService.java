@@ -82,7 +82,7 @@ public class PasswordResetService {
             model.put("link", resetLink);
             model.put("user", user);
 
-            String subject = "Restablece tu contraseña - MemoWorks";
+            String subject = "Restablece tu contraseña - CRCoach";
 
             // enviar HTML con plantilla
             emailService.sendTemplateEmail(user.getEmail(), subject, "password-reset.html", model);
@@ -92,7 +92,7 @@ public class PasswordResetService {
         } catch (Exception e) {
             logger.error("Failed to send password reset email to {}: {}", user.getEmail(), e.getMessage());
             // fallback: log link para desarrollo
-            String resetLink = String.format("%s/reset-password?token=%s", frontendBaseUrl, rawToken);
+            String resetLink = String.format("%s/recover-password?token=%s", frontendBaseUrl, rawToken);
             logger.info("Password reset link (fallback log) for {}: {}", user.getEmail(), resetLink);
         }
     }

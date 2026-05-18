@@ -16,9 +16,9 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String surnames;
     @Column(nullable = false, unique = true)
     private String username;
@@ -32,13 +32,8 @@ public class User {
     private Role role;
     @Column(nullable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "player_tag", unique = true)
+    @Column(name = "player_tag", unique = true, nullable = false)
     private String playerTag;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "player_tag", referencedColumnName = "tag", insertable = false, updatable = false)
-    private PlayerProfile playerProfile;
 
     @Column(nullable = false)
     private Boolean enabled;

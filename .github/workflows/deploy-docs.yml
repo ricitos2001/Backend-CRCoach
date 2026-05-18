@@ -32,7 +32,7 @@ jobs:
         run: |
           for i in {1..30}; do
             echo "Trying to fetch OpenAPI spec (attempt $i)..."
-            if curl -sS https://backend-crcoach.onrender.com/v3/api-docs -o docs/openapi.json; then
+            if    curl -sS -H "Accept: application/json" http://localhost:8080/v3/api-docs -o docs/openapi.json; then
               echo "Downloaded openapi.json"
               break
             fi

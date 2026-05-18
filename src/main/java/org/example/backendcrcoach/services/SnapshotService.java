@@ -10,6 +10,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 @Service
 @Transactional
 public class SnapshotService {
@@ -44,5 +47,24 @@ public class SnapshotService {
     public void deleteOldSnapshots(int daysOld) {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysOld);
         snapshotRepository.deleteByCreatedAtBefore(cutoffDate);
+    }
+
+    /**
+     * Obtiene el snapshot más reciente para un jugador identificado por su tag.
+     * Devuelve Optional.empty() si no existe.
+     */
+    public Optional<org.example.backendcrcoach.domain.dto.SnapshotResponseDTO> getLatestSnapshotByPlayerTag(String playerTag) {
+        return snapshotRepository.findTopByPlayerProfileTagOrderByCapturedAtDesc(playerTag)
+                .map(SnapshotMapper::toDTO);
+    }
+
+    /**
+     * Obtiene el registro completo (historial) de snapshots para un jugador por su tag,
+     * ordenado por fecha descendente. Devuelve una lista de DTOs (vacía si no hay registros).
+     */
+    public List<org.example.backendcrcoach.domain.dto.SnapshotResponseDTO> getSnapshotHistoryByPlayerTag(String playerTag) {
+        if (playerTag == null || playerTag.isBlank()) return List.of();
+        org.springframework.data.domain.Page<Snapshot> page = snapshotRepository.findByPlayerProfileTagOrderByCapturedAtDesc(playerTag, org.springframework.data.domain.Pageable.unpaged());
+        return page.getContent().stream().map(SnapshotMapper::toDTO).collect(Collectors.toList());
     }
 }

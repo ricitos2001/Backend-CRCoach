@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.util.retry.Retry;
+import reactor.core.publisher.Mono;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import java.time.Duration;
 
@@ -26,10 +28,19 @@ public class WebClientHelper {
 
     public String fetchGetWithRetries(WebClient client, String uri, Object... uriVars) {
         try {
+            // Use exchangeToMono so we can capture non-2xx response bodies (e.g. 403) and
+            // include them in the thrown error message for easier debugging.
             return client.get()
                     .uri(uri, uriVars)
-                    .retrieve()
-                    .bodyToMono(String.class)
+                    .exchangeToMono((ClientResponse resp) -> {
+                        if (resp.statusCode().is2xxSuccessful()) {
+                            return resp.bodyToMono(String.class);
+                        }
+                        // Read body (if any) and include in error
+                        return resp.bodyToMono(String.class)
+                                .defaultIfEmpty("")
+                                .flatMap(body -> Mono.error(new RuntimeException("HTTP " + resp.statusCode().value() + " " + resp.statusCode().toString() + " - " + body)));
+                    })
                     // Apply Reactor-level timeout per attempt to avoid Netty-level ReadTimeoutHandler
                     .timeout(blockTimeout)
                     .retryWhen(Retry.backoff(maxRetries, Duration.ofSeconds(1))

@@ -4,6 +4,10 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.example.backendcrcoach.config.WebClientHelper;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
@@ -24,16 +28,15 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class BattleService {
-    private static final String TAG_PREFIX = "#";
     private static final Logger log = LoggerFactory.getLogger(BattleService.class);
 
     private final BattleRepository battleRepository;
-    private final PlayerProfileRepository playerProfileRepository;
     private final PlayerEntityRepository playerEntityRepository;
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -42,7 +45,6 @@ public class BattleService {
     private final GameModeService gameModeService;
     private final WebClientHelper webClientHelper;
     private final DeckService deckService;
-    private final ApplicationContext applicationContext;
 
     public BattleService(
             BattleRepository battleRepository,
@@ -54,42 +56,28 @@ public class BattleService {
             ArenaService arenaService, ClanService clanService,
             GameModeService gameModeService,
             WebClientHelper webClientHelper,
-            DeckService deckService,
-            ApplicationContext applicationContext) {
+            DeckService deckService) {
         this.battleRepository = battleRepository;
-        this.playerProfileRepository = playerProfileRepository;
         this.playerEntityRepository = playerEntityRepository;
         this.webClient = builder
                 .baseUrl(API_URL)
-                .defaultHeader("Authorization", "Bearer " + API_KEY)
-                .build();
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + API_KEY)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.USER_AGENT, "CRCoach/Backend-CRCoach")                .build();
         this.arenaService = arenaService;
         this.clanService = clanService;
         this.gameModeService = gameModeService;
         this.webClientHelper = webClientHelper;
         this.deckService = deckService;
-        this.applicationContext = applicationContext;
-    }
-
-    @Async("taskExecutor")
-    public void importBattlesForPlayerAsync(String playerTag) {
-        try {
-            // Call through proxy to ensure transactional boundaries are applied to the import
-            BattleService self = applicationContext.getBean(BattleService.class);
-            int imported = self.importBattlesForPlayer(playerTag);
-            log.info("Imported {} battles for player {} (async)", imported, playerTag);
-        } catch (Exception e) {
-            log.error("Error importing battles for player {} asynchronously: {}", playerTag, e.getMessage(), e);
-        }
     }
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
         Battle battle = BattleMapper.toEntity(dto);
         if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
-            playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(battle::setTeam);
+            playerEntityRepository.findByTag(dto.getTeam().getTag()).ifPresent(battle::setTeam);
         }
         if (dto.getOpponent() != null && dto.getOpponent().getTag() != null) {
-            playerEntityRepository.findByTag(normalizeTag(dto.getOpponent().getTag())).ifPresent(battle::setOpponent);
+            playerEntityRepository.findByTag(dto.getOpponent().getTag()).ifPresent(battle::setOpponent);
         }
         Battle saved = battleRepository.save(battle);
         return BattleMapper.toDTO(saved);
@@ -111,13 +99,13 @@ public class BattleService {
             Battle updated = BattleMapper.toEntity(dto);
             updated.setId(existing.getId());
             if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
-                playerEntityRepository.findByTag(normalizeTag(dto.getTeam().getTag())).ifPresent(updated::setTeam);
+                playerEntityRepository.findByTag(dto.getTeam().getTag()).ifPresent(updated::setTeam);
             } else {
                 updated.setTeam(existing.getTeam());
             }
 
             if (dto.getOpponent() != null && dto.getOpponent().getTag() != null) {
-                playerEntityRepository.findByTag(normalizeTag(dto.getOpponent().getTag())).ifPresent(updated::setOpponent);
+                playerEntityRepository.findByTag(dto.getOpponent().getTag()).ifPresent(updated::setOpponent);
             } else {
                 updated.setOpponent(existing.getOpponent());
             }
@@ -132,58 +120,72 @@ public class BattleService {
     }
 
     /**
+     * Obtiene el registro de batallas donde aparece el jugador identificado por su tag
+     * (puede aparecer en team u opponent). Devuelve las batallas más recientes primero.
+     * Si limit es null o <=0 se usa un valor por defecto de 50.
+     */
+    public List<BattleResponseDTO> getBattlesByPlayerTag(String playerTag, Integer limit) {
+        if (playerTag == null || playerTag.isBlank()) return List.of();
+        int pageSize = (limit == null || limit <= 0) ? 50 : limit;
+        Pageable pageable = PageRequest.of(0, pageSize);
+        List<Battle> battles = battleRepository.findByTeamTagOrOpponentTagOrderByBattleTimeDesc(playerTag, playerTag, pageable);
+        return battles.stream().map(BattleMapper::toDTO).collect(Collectors.toList());
+    }
+
+    /**
      * Importa batallas de la API de Clash Royale para un jugador (tag sin '#').
      * Evita duplicados basándose en el campo battleTime.
-     * Devuelve el número de batallas importadas.
+     * Devuelve el DTO de la última batalla guardada (o null si no se importó ninguna).
      */
-    public int importBattlesForPlayer(String playerTag) {
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", formatTag(playerTag));
-
+    @Async
+    public void importBattlesForPlayer(String playerTag) {
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", playerTag);
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener batallas para el jugador con tag: " + playerTag);
         }
-
         JsonNode battlesJson;
         try {
             battlesJson = objectMapper.readTree(responseBody);
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Respuesta invalida al obtener batallas para el jugador con tag: " + playerTag, e);
         }
-
         if (!battlesJson.isArray()) {
             throw new IllegalArgumentException("Formato inesperado: se esperaba un array de batallas");
         }
 
-        int imported = 0;
+        Battle savedBattle = null;
         for (JsonNode node : battlesJson) {
-            Battle battle = mapApiResponseToEntity(node);
-            // Evitar duplicados basándose en el campo 'battleTime' (más fiable que comparar JSON)
-            if (battle.getBattleTime() == null) continue;
-            if (battleRepository.existsByBattleTime(battle.getBattleTime())) continue;
-            battleRepository.save(battle);
-            imported++;
+            Battle persistedOrExisting = mapApiResponseToEntity(node);
+            if (persistedOrExisting == null) continue;
+            savedBattle = persistedOrExisting;
         }
 
-        return imported;
+        if (savedBattle == null) {
+            CompletableFuture.completedFuture(null);
+            return;
+        }
+        CompletableFuture.completedFuture(BattleMapper.toDTO(savedBattle));
     }
 
     private Battle mapApiResponseToEntity(JsonNode json) {
+        String battleTime = readText(json, "battleTime");
+        if (battleTime == null) return null;
+        if (battleRepository.existsByBattleTime(battleTime)) {
+            return null;
+        }
+
         Battle battle = new Battle();
         battle.setType(readText(json, "type"));
-        battle.setBattleTime(readText(json, "battleTime"));
+        battle.setBattleTime(battleTime);
         battle.setIsLadderTournament(readBoolean(json, "isLadderTournament"));
         battle.setDeckSelection(readText(json, "deckSelection"));
         battle.setIsHostedMatch(readBoolean(json, "isHostedMatch"));
         battle.setLeagueNumber(readInteger(json, "leagueNumber"));
         battle.setArena(arenaService.resolveArenaFromNode(json.get("arena")));
-        // Resolve gameMode node into persisted GameMode entity (if present)
         battle.setGameMode(gameModeService.resolveGameModeFromNode(json.get("gameMode")));
         battle.setTeam(resolvePlayerEntityFromArray(json.get("team")));
         battle.setOpponent(resolvePlayerEntityFromArray(json.get("opponent")));
-
-        // Note: do not set battleTimeTs (field removed). We keep battleTime as the source of truth.
-
-        return battle;
+        return battleRepository.save(battle);
     }
 
     private PlayerEntity resolvePlayerEntityFromArray(JsonNode playersNode) {
@@ -193,10 +195,9 @@ public class BattleService {
         String rawTag = readText(node, "tag");
         if (rawTag == null || rawTag.isBlank()) return null;
 
-        String normalizedTag = normalizeTag(rawTag);
-        PlayerEntity entity = playerEntityRepository.findByTag(normalizedTag).orElseGet(PlayerEntity::new);
+        PlayerEntity entity = new PlayerEntity();
 
-        entity.setTag(normalizedTag);
+        entity.setTag(rawTag);
         entity.setName(readText(node, "name"));
         entity.setStartingTrophies(readInteger(node, "startingTrophies"));
         entity.setTrophyChange(readInteger(node, "trophyChange"));
@@ -235,6 +236,7 @@ public class BattleService {
             card.setName(readText(c, "name"));
             card.setLevel(readInteger(c, "level"));
             card.setMaxLevel(readInteger(c, "maxLevel"));
+            card.setEvolutionLevel(readInteger(c, "evolutionLevel"));
             card.setMaxEvolutionLevel(readInteger(c, "maxEvolutionLevel"));
             card.setRarity(readText(c, "rarity"));
             card.setElixirCost(readInteger(c, "elixirCost"));
@@ -245,6 +247,7 @@ public class BattleService {
                 IconUrl icon = new IconUrl();
                 icon.setMedium(readText(iconNode, "medium"));
                 icon.setEvolutionMedium(readText(iconNode, "evolutionMedium"));
+                icon.setHeroMedium(readText(iconNode, "heroMedium"));
                 card.setIconUrl(icon);
             }
 
@@ -254,16 +257,6 @@ public class BattleService {
         deck.setPlayerCards(cards);
         // El arquetipo se calcula en DeckService al persistir el deck
         return deck;
-    }
-
-    private String normalizeTag(String rawTag) {
-        if (rawTag == null || rawTag.isBlank()) return rawTag;
-        return rawTag.startsWith(TAG_PREFIX) ? rawTag : TAG_PREFIX + rawTag;
-    }
-
-    private String formatTag(String tagWithoutHash) {
-        if (tagWithoutHash == null) return null;
-        return tagWithoutHash.startsWith(TAG_PREFIX) ? tagWithoutHash : TAG_PREFIX + tagWithoutHash;
     }
 
     private String readText(JsonNode json, String field) {
@@ -284,10 +277,5 @@ public class BattleService {
     private Boolean readBoolean(JsonNode json, String field) {
         JsonNode node = json.get(field);
         return node == null || node.isNull() ? null : node.asBoolean();
-    }
-
-    private String readJsonText(JsonNode json, String field) {
-        JsonNode node = json.get(field);
-        return node == null || node.isNull() ? null : node.toString();
     }
 }

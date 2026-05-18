@@ -2,7 +2,6 @@ package org.example.backendcrcoach.mappers;
 
 import org.example.backendcrcoach.domain.dto.MetricResponseDTO;
 import org.example.backendcrcoach.domain.entities.*;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MetricMapper {
@@ -15,7 +14,10 @@ public class MetricMapper {
                                                  Integer totalBattles,
                                                  Integer activeGoalsCount,
                                                  Goal mostAdvancedGoal,
-                                                 Integer unreadNotifications) {
+                                                 Integer unreadNotifications,
+                                                 Double winLast7Days,
+                                                 Double lossLast7Days,
+                                                 Integer donations) {
 
         MetricResponseDTO dto = new MetricResponseDTO();
         dto.setPlayerTag(profile != null ? profile.getTag() : null);
@@ -48,9 +50,15 @@ public class MetricMapper {
         // winRate calculations
         MetricResponseDTO.WinRateDto wr = new MetricResponseDTO.WinRateDto();
         wr.setLast25Battles(calculateWinRate(recentBattles));
-        // last7Days is not calculated here (needs separate query), keep null
-        wr.setLast7Days(null);
+        // last7Days computed by caller
+        wr.setLast7Days(winLast7Days);
         dto.setWinRate(wr);
+
+        // lossRate calculations (same logic as winRate but counting defeats)
+        MetricResponseDTO.LossRateDto lr = new MetricResponseDTO.LossRateDto();
+        lr.setLast25Battles(calculateLossRate(recentBattles));
+        lr.setLast7Days(lossLast7Days);
+        dto.setLossRate(lr);
 
         MetricResponseDTO.StreakDto st = calculateStreakDto(recentBattles);
         dto.setStreak(st);
@@ -77,6 +85,7 @@ public class MetricMapper {
         dto.setActiveGoals(ag);
 
         dto.setUnreadNotifications(unreadNotifications);
+        dto.setDonations(donations);
 
         return dto;
     }
@@ -84,7 +93,22 @@ public class MetricMapper {
     private static Double calculateWinRate(List<Battle> battles) {
         if (battles == null || battles.isEmpty()) return null;
         long wins = battles.stream().filter(b -> b.getTeam() != null && b.getTeam().getCrowns() != null && b.getOpponent() != null && b.getOpponent().getCrowns() != null && b.getTeam().getCrowns() > b.getOpponent().getCrowns()).count();
-        return (double) wins / (double) battles.size();
+        double raw = (double) wins / (double) battles.size();
+        return Math.round(raw * 10000.0) / 10000.0;
+    }
+
+    private static Double calculateLossRate(List<Battle> battles) {
+        if (battles == null || battles.isEmpty()) return null;
+        long losses = battles.stream().filter(b -> {
+            if (b == null) return false;
+            if (b.getTeam() == null || b.getOpponent() == null) return false;
+            Integer teamCrowns = b.getTeam().getCrowns();
+            Integer oppCrowns = b.getOpponent().getCrowns();
+            if (teamCrowns == null || oppCrowns == null) return false;
+            return teamCrowns < oppCrowns;
+        }).count();
+        double raw = (double) losses / (double) battles.size();
+        return Math.round(raw * 10000.0) / 10000.0;
     }
 
     private static MetricResponseDTO.StreakDto calculateStreakDto(List<Battle> battles) {

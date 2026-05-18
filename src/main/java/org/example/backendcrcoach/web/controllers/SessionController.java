@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping(value = "/api/v1/sessions", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -61,5 +62,12 @@ public class SessionController {
     public ResponseEntity<Void> delete(@PathVariable(name = "id") Long id) {
         sessionService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Listar sesiones por usuario", description = "Obtiene la lista de sesiones asociadas al email del usuario.")
+    @GetMapping("/mySessions/{email}")
+    public ResponseEntity<List<SessionResponseDTO>> listByUserEmail(@PathVariable(name = "email") String email) {
+        List<SessionResponseDTO> sessions = sessionService.listByUserEmail(email);
+        return ResponseEntity.ok(sessions);
     }
 }

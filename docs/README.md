@@ -17,8 +17,7 @@ Pasos (método simple: generar openapi.json y subir a `docs/` en la rama princip
    mvn spring-boot:run
 
    # En otra terminal, descargar la especificación OpenAPI (por defecto springdoc la sirve en /v3/api-docs):
-   curl -sS http://localhost:8080/v3/api-docs -o docs/openapi.json
-   ```
+   curl -sS -H "Accept: application/json" http://localhost:8080/v3/api-docs -o docs/openapi.json   ```
 
    Nota: si tu aplicación corre en otro puerto o con contexto, ajusta la URL.
 

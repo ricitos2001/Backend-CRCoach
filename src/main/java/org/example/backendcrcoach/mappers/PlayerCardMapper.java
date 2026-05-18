@@ -12,6 +12,7 @@ public class PlayerCardMapper {
         card.setName(dto.getName());
         card.setLevel(dto.getLevel());
         card.setMaxLevel(dto.getMaxLevel());
+        card.setEvolutionLevel(dto.getEvolutionLevel());
         card.setMaxEvolutionLevel(dto.getMaxEvolutionLevel());
         card.setRarity(dto.getRarity());
         card.setCount(dto.getCount());
@@ -27,6 +28,7 @@ public class PlayerCardMapper {
                 card.getName(),
                 card.getLevel(),
                 card.getMaxLevel(),
+                card.getEvolutionLevel(),
                 card.getMaxEvolutionLevel(),
                 card.getRarity(),
                 card.getCount(),

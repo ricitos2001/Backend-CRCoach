@@ -1,5 +1,6 @@
 package org.example.backendcrcoach.domain.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,7 +19,7 @@ public class PlayerEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String tag;
 
     @Column(nullable = false)
@@ -36,9 +37,10 @@ public class PlayerEntity {
     @Column
     private Integer kingTowerHitPoints;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "player_entity_princess_towers_hit_points", joinColumns = @JoinColumn(name = "player_entity_id"))
     @Column(name = "hit_points")
+    @JsonIgnore
     private List<Integer> princessTowersHitPoints;
 
     @ManyToOne

@@ -20,10 +20,13 @@ public class MetricResponseDTO {
     private ArenaDto arena;
     private LeagueDto league;
     private WinRateDto winRate;
+    private LossRateDto lossRate;
     private StreakDto streak;
     private BattlesDto battles;
     private ActiveGoalsDto activeGoals;
     private Integer unreadNotifications;
+    private Integer donations;
+
 
     @Getter
     @Setter
@@ -60,6 +63,15 @@ public class MetricResponseDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class WinRateDto {
+        private Double last25Battles;
+        private Double last7Days;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LossRateDto {
         private Double last25Battles;
         private Double last7Days;
     }

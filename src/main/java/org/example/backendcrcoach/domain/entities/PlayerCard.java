@@ -30,6 +30,9 @@ public class PlayerCard {
     private Integer maxLevel;
 
     @Column
+    private Integer evolutionLevel;
+
+    @Column
     private Integer maxEvolutionLevel;
 
     @Column
@@ -53,5 +56,4 @@ public class PlayerCard {
 
     @Column(name = "support_card")
     private Boolean supportCard;
-
 }

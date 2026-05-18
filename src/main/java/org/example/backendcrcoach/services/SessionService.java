@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -71,6 +73,7 @@ public class SessionService {
         Optional.ofNullable(session.getTitle()).ifPresent(updatedSession::setTitle);
         Optional.ofNullable(session.getNotes()).ifPresent(updatedSession::setNotes);
         Optional.ofNullable(session.getMood()).ifPresent(updatedSession::setMood);
+        Optional.ofNullable(session.getEnfoque()).ifPresent(updatedSession::setEnfoque);
         Optional.ofNullable(session.getStartTime()).ifPresent(updatedSession::setStartTime);
         Optional.ofNullable(session.getEndTime()).ifPresent(updatedSession::setEndTime);
         Optional.ofNullable(session.getCreatedAt()).ifPresent(updatedSession::setCreatedAt);
@@ -80,5 +83,13 @@ public class SessionService {
     public void delete(Long id) {
         if (!sessionRepository.existsById(id)) throw new SessionNotFoundException(id);
         sessionRepository.deleteById(id);
+    }
+
+    /**
+     * Lista todas las sesiones de un usuario identificado por su email.
+     */
+    public List<SessionResponseDTO> listByUserEmail(String userEmail) {
+        List<Session> sessions = sessionRepository.findByUserEmail(userEmail);
+        return sessions.stream().map(SessionMapper::toDTO).collect(Collectors.toList());
     }
 }

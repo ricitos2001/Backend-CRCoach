@@ -13,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.example.backendcrcoach.config.WebClientHelper;
 import org.springframework.web.bind.annotation.RequestBody;
 import tools.jackson.databind.JsonNode;
@@ -26,7 +28,6 @@ import java.util.List;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @Transactional
@@ -36,7 +37,6 @@ public class PlayerProfileService {
     private final SnapshotService snapshotService;
     private final PlayerCardService playerCardService;
     private final WebClient webClient;
-    private final BattleService battleService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArenaService arenaService;
     private final ClanService clanService;
@@ -50,7 +50,6 @@ public class PlayerProfileService {
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
             @Value("${clash.royale.api.key}") String API_KEY,
-            BattleService battleService,
             PlayerCardService playerCardService,
             ArenaService arenaService,
             ClanService clanService,
@@ -59,9 +58,10 @@ public class PlayerProfileService {
         this.snapshotService = snapshotService;
         this.webClient = builder
                 .baseUrl(API_URL)
-                .defaultHeader("Authorization", "Bearer " + API_KEY)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + API_KEY)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.USER_AGENT, "CRCoach/Backend-CRCoach")
                 .build();
-        this.battleService = battleService;
         this.playerCardService = playerCardService;
         this.arenaService = arenaService;
         this.clanService = clanService;
@@ -198,41 +198,23 @@ public class PlayerProfileService {
     }
 
     public PlayerProfileResponseDTO getPlayer(String playerTag) {
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", "#" + playerTag);
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTag);
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("No se pudo obtener el perfil del jugador con tag: " + playerTag);
         }
-
         JsonNode playerJson;
         try {
             playerJson = objectMapper.readTree(responseBody);
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Respuesta invalida al obtener el perfil del jugador con tag: " + playerTag, e);
         }
-
         PlayerProfile playerProfile = mapApiResponseToEntity(playerJson);
-
-        // Importar batallas en segundo plano (no bloquear la petición HTTP del cliente)
-        CompletableFuture.runAsync(() -> {
-            try {
-                int importedBattles = battleService.importBattlesForPlayer(playerTag);
-                if (importedBattles > 0) {
-                    // Si se importaron batallas nuevas, crear un snapshot basado en el perfil
-                    // reconsultado desde la BBDD para asegurarnos de tener una entidad gestionada.
-                    playerProfileRepository.findByTag("#" + playerTag).ifPresent(snapshotService::saveSnapshot);
-                }
-            } catch (Exception e) {
-                // no interrumpir el flujo por fallos en batallas
-            }
-        });
-
         PlayerProfile savedProfile;
         PlayerProfile existing = playerProfileRepository.findByTag(playerProfile.getTag()).orElse(null);
         boolean statsChanged;
         if (existing != null) {
             // Determinar si las estadísticas relevantes cambiaron
             statsChanged = hasSnapshotRelevantChanges(existing, playerProfile);
-
             // Actualizar campos del perfil existente con la información nueva
             existing.setName(playerProfile.getName());
             existing.setExpLevel(playerProfile.getExpLevel());
@@ -314,7 +296,6 @@ public class PlayerProfileService {
             existing.setLastPathOfLegendSeasonResult(playerProfile.getLastPathOfLegendSeasonResult());
             existing.setBestPathOfLegendSeasonResult(playerProfile.getBestPathOfLegendSeasonResult());
             existing.setProgress(playerProfile.getProgress());
-
             // Persistir o asociar mazos antes de guardar el perfil para evitar referencias transientes
             existing.setCurrentDeck(deckService.persistDeckIfNeeded(existing.getCurrentDeck()));
             existing.setCurrentDeckSupportCards(deckService.persistDeckIfNeeded(existing.getCurrentDeckSupportCards()));
@@ -342,26 +323,22 @@ public class PlayerProfileService {
             }
             statsChanged = true; // nuevo perfil -> snapshot
         }
-
         // Crear snapshot si las estadísticas cambiaron.
         // La importación asíncrona de batallas se encarga de crear snapshot si fue necesario.
         if (statsChanged) {
             snapshotService.saveSnapshot(savedProfile);
         }
-
         // Guardar/actualizar playerCards siempre (pueden cambiar aunque estadísticas no)
         playerCardService.saveCardsFromProfile(savedProfile);
-
         return PlayerProfileMapper.toDTO(savedProfile);
     }
 
-    public boolean existsLocallyOrInApi(String playerTag) {
-        if (playerTag == null || playerTag.isBlank()) return false;
-        String rawTag = playerTag.startsWith("#") ? playerTag : "#" + playerTag;
-        if (playerProfileRepository.existsByTag(playerTag) || playerProfileRepository.existsByTag(rawTag)) {
-            return true;
-        }
-        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", rawTag);
+    public boolean existsLocal(String playerTag) {
+        return playerProfileRepository.findByTag(playerTag).isPresent();
+    }
+
+    public boolean exitsInApi(String playerTag) {
+        String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}", playerTag);
         if (responseBody == null || responseBody.isBlank()) return false;
 
         JsonNode node = objectMapper.readTree(responseBody);

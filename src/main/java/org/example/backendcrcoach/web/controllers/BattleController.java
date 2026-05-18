@@ -33,6 +33,14 @@ public class BattleController {
         return ResponseEntity.ok(battleService.getAllBattles());
     }
 
+    @Operation(summary = "Obtener batallas por tag de jugador", description = "Recupera las batallas donde aparece el jugador (como team u opponent).")
+    @GetMapping("/myBattles/{playerTag}")
+    public ResponseEntity<List<BattleResponseDTO>> getByPlayerTag(@PathVariable String playerTag,
+                                                                 @RequestParam(required = false) Integer limit) {
+        List<BattleResponseDTO> battles = battleService.getBattlesByPlayerTag(playerTag, limit);
+        return ResponseEntity.ok(battles);
+    }
+
     @Operation(summary = "Obtener batalla por ID", description = "Recupera los detalles de una batalla dada su ID.")
     @GetMapping("/{id}")
     public ResponseEntity<BattleResponseDTO> getById(@PathVariable Long id) {
@@ -56,10 +64,10 @@ public class BattleController {
         return ResponseEntity.noContent().build();
     }
     @Operation(summary = "Importar batallas de jugador", description = "Importa batallas desde la API externa para un jugador dado su tag.")
-    @PostMapping("/import/{playerTag}")
+    @GetMapping("/import/{playerTag}")
     public ResponseEntity<String> importForPlayer(@PathVariable String playerTag) {
         // Lanzar la importación en segundo plano y devolver 202 Accepted inmediatamente.
-        battleService.importBattlesForPlayerAsync(playerTag);
+        battleService.importBattlesForPlayer(playerTag);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body("Import started for player " + playerTag);
     }
 }

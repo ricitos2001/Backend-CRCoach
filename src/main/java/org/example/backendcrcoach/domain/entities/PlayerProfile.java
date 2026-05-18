@@ -21,7 +21,7 @@ public class PlayerProfile {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String tag;
 
     @Column(nullable = false)

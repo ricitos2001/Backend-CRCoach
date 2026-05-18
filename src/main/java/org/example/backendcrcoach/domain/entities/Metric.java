@@ -58,6 +58,10 @@ public class Metric {
     private WinRate winRate;
 
     @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "lossrate_id")
+    private LossRate lossRate;
+
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "streak_id")
     private Streak streak;
 
@@ -72,6 +76,11 @@ public class Metric {
 
     @Column
     private Integer unreadNotifications;
+
+    // Nuevas propiedades para donaciones y probabilidad de donaciones en las últimas 24h
+    @Column
+    private Integer donations;
+
 
     // Relación opcional directa con PlayerProfile si se desea enlazar (no necesaria para serialización JSON)
     @ManyToOne
