@@ -45,6 +45,7 @@ public class BattleService {
     private final GameModeService gameModeService;
     private final WebClientHelper webClientHelper;
     private final DeckService deckService;
+    private final BattleImportService battleImportService;
 
     public BattleService(
             BattleRepository battleRepository,
@@ -56,7 +57,8 @@ public class BattleService {
             ArenaService arenaService, ClanService clanService,
             GameModeService gameModeService,
             WebClientHelper webClientHelper,
-            DeckService deckService) {
+            DeckService deckService,
+            BattleImportService battleImportService) {
         this.battleRepository = battleRepository;
         this.playerEntityRepository = playerEntityRepository;
         this.webClient = builder
@@ -69,6 +71,7 @@ public class BattleService {
         this.gameModeService = gameModeService;
         this.webClientHelper = webClientHelper;
         this.deckService = deckService;
+        this.battleImportService = battleImportService;
     }
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
@@ -155,9 +158,13 @@ public class BattleService {
 
         Battle savedBattle = null;
         for (JsonNode node : battlesJson) {
-            Battle persistedOrExisting = mapApiResponseToEntity(node);
-            if (persistedOrExisting == null) continue;
-            savedBattle = persistedOrExisting;
+            try {
+                Battle persistedOrExisting = battleImportService.importSingleBattle(node);
+                if (persistedOrExisting == null) continue;
+                savedBattle = persistedOrExisting;
+            } catch (Exception e) {
+                log.warn("Error importing battle, skipping: {}", e.getMessage());
+            }
         }
 
         if (savedBattle == null) {
@@ -165,6 +172,10 @@ public class BattleService {
             return;
         }
         CompletableFuture.completedFuture(BattleMapper.toDTO(savedBattle));
+    }
+
+    public Battle importSingleBattleFromNode(JsonNode node) {
+        return mapApiResponseToEntity(node);
     }
 
     private Battle mapApiResponseToEntity(JsonNode json) {
