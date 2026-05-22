@@ -49,7 +49,6 @@ public class BattleService {
 
     public BattleService(
             BattleRepository battleRepository,
-            PlayerProfileRepository playerProfileRepository,
             PlayerEntityRepository playerEntityRepository,
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
