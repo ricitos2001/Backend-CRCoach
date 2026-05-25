@@ -17,7 +17,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "battles")
+@Table(name = "battles", uniqueConstraints = @UniqueConstraint(columnNames = "battleTime"))
 public class Battle {
 
     @Id
