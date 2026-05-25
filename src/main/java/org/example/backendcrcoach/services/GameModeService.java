@@ -6,7 +6,9 @@ import org.example.backendcrcoach.domain.dto.GameModeResponseDTO;
 import org.example.backendcrcoach.domain.entities.GameMode;
 import org.example.backendcrcoach.mappers.GameModeMapper;
 import org.example.backendcrcoach.repositories.GameModeRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -74,14 +76,38 @@ public class GameModeService {
             gm = gameModeRepository.findByGameModeId(gmId).orElse(null);
         }
         if (gm == null && name != null && !name.isBlank()) {
-            gm = gameModeRepository.findByName(name).orElseGet(GameMode::new);
+            gm = gameModeRepository.findByName(name).orElse(null);
         }
 
-        if (gm == null) gm = new GameMode();
+        if (gm != null) return gm;
+
+        gm = new GameMode();
         if (gmId != null && gmId != 0) gm.setGameModeId(gmId);
         if (name != null && !name.isBlank()) gm.setName(name);
 
-        return gameModeRepository.save(gm);
+        try {
+            return saveGameModeAndFlushInNewTx(gm);
+        } catch (DataIntegrityViolationException dive) {
+            if (gmId != null && gmId != 0) {
+                return findGameModeByIdInNewTx(gmId);
+            }
+            return findGameModeByNameInNewTx(name);
+        }
+    }
+
+    @org.springframework.transaction.annotation.Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected GameMode saveGameModeAndFlushInNewTx(GameMode gm) {
+        return gameModeRepository.saveAndFlush(gm);
+    }
+
+    @org.springframework.transaction.annotation.Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    protected GameMode findGameModeByIdInNewTx(Integer gmId) {
+        return gameModeRepository.findByGameModeId(gmId).orElse(null);
+    }
+
+    @org.springframework.transaction.annotation.Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    protected GameMode findGameModeByNameInNewTx(String name) {
+        return gameModeRepository.findByName(name).orElse(null);
     }
 }
 
