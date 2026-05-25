@@ -1,14 +1,13 @@
 package org.example.backendcrcoach.services;
 
-import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 import org.example.backendcrcoach.config.WebClientHelper;
 import org.example.backendcrcoach.domain.dto.BattleRequestDTO;
 import org.example.backendcrcoach.domain.dto.BattleResponseDTO;
@@ -32,7 +31,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class BattleService {
     private static final Logger log = LoggerFactory.getLogger(BattleService.class);
 
@@ -71,6 +69,7 @@ public class BattleService {
         this.deckService = deckService;
     }
 
+    @Transactional
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
         Battle battle = BattleMapper.toEntity(dto);
         if (dto.getTeam() != null && dto.getTeam().getTag() != null) {
@@ -94,6 +93,7 @@ public class BattleService {
         return battleRepository.findById(id).map(BattleMapper::toDTO);
     }
 
+    @Transactional
     public Optional<BattleResponseDTO> updateBattle(Long id, BattleRequestDTO dto) {
         return battleRepository.findById(id).map(existing -> {
             Battle updated = BattleMapper.toEntity(dto);
@@ -115,6 +115,7 @@ public class BattleService {
         });
     }
 
+    @Transactional
     public void deleteBattle(Long id) {
         battleRepository.deleteById(id);
     }
@@ -155,9 +156,13 @@ public class BattleService {
 
         Battle savedBattle = null;
         for (JsonNode node : battlesJson) {
-            Battle persistedOrExisting = mapApiResponseToEntity(node);
-            if (persistedOrExisting == null) continue;
-            savedBattle = persistedOrExisting;
+            try {
+                Battle persistedOrExisting = mapApiResponseToEntity(node);
+                if (persistedOrExisting == null) continue;
+                savedBattle = persistedOrExisting;
+            } catch (Exception e) {
+                log.warn("Error importing battle, skipping: {}", e.getMessage());
+            }
         }
 
         if (savedBattle == null) {
@@ -195,7 +200,7 @@ public class BattleService {
         String rawTag = readText(node, "tag");
         if (rawTag == null || rawTag.isBlank()) return null;
 
-        PlayerEntity entity = new PlayerEntity();
+        PlayerEntity entity = playerEntityRepository.findByTag(rawTag).orElseGet(PlayerEntity::new);
 
         entity.setTag(rawTag);
         entity.setName(readText(node, "name"));
@@ -217,7 +222,6 @@ public class BattleService {
         }
 
         Deck deck = resolveDeckFromArray(node.get("cards"));
-        // Persistir el deck si es necesario para que tenga id y arquetipo calculado
         Deck persisted = deckService.persistDeckIfNeeded(deck);
         entity.setPlayerDeck(persisted);
 
