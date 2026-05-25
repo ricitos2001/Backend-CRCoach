@@ -8,6 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface DeckRepository extends JpaRepository<Deck, Long> {
-    Optional<Deck> findByFingerprint(String fingerprint);
+    // ahora no soportamos búsqueda por apiId (campo eliminado)
 }
 

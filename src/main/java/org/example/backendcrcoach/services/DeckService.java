@@ -27,15 +27,8 @@ public class DeckService {
     }
 
     public DeckResponseDTO create(DeckRequestDTO dto) {
+        // No comprobación por apiId (campo external eliminado). Simplemente crear.
         Deck deck = DeckMapper.toEntity(dto);
-        String fingerprint = Deck.computeFingerprint(deck.getPlayerCards());
-        if (fingerprint != null) {
-            Optional<Deck> existing = deckRepository.findByFingerprint(fingerprint);
-            if (existing.isPresent()) {
-                return DeckMapper.toDTO(existing.get());
-            }
-        }
-        deck.setFingerprint(fingerprint);
         Deck saved = deckRepository.save(deck);
         return DeckMapper.toDTO(saved);
     }
@@ -52,18 +45,14 @@ public class DeckService {
 
     public Optional<DeckResponseDTO> update(Long id, DeckRequestDTO dto) {
         return deckRepository.findById(id).map(existing -> {
+            if (deckRepository.existsById(id)) {
+                throw new IllegalArgumentException("Ya existe un Deck con id: " + id);
+            }
+
             Optional.ofNullable(dto.getArchetype()).ifPresent(existing::setArchetype);
             if (dto.getPlayerCards() != null) {
                 existing.setPlayerCards(dto.getPlayerCards());
             }
-            String fingerprint = Deck.computeFingerprint(existing.getPlayerCards());
-            if (fingerprint != null) {
-                Optional<Deck> dup = deckRepository.findByFingerprint(fingerprint);
-                if (dup.isPresent() && !dup.get().getId().equals(id)) {
-                    throw new IllegalArgumentException("Ya existe un Deck con la misma composición de cartas");
-                }
-            }
-            existing.setFingerprint(fingerprint);
 
             Deck saved = deckRepository.save(existing);
             return DeckMapper.toDTO(saved);
@@ -76,19 +65,11 @@ public class DeckService {
 
     public Deck persistDeckIfNeeded(Deck deck) {
         if (deck == null) return null;
+        // Si el deck ya tiene id (PK), se asume persistido/gestionado
         if (deck.getId() != null) {
             return deckRepository.findById(deck.getId()).orElse(deck);
         }
-
-        String fingerprint = Deck.computeFingerprint(deck.getPlayerCards());
-        if (fingerprint != null) {
-            Optional<Deck> existing = deckRepository.findByFingerprint(fingerprint);
-            if (existing.isPresent()) {
-                return existing.get();
-            }
-        }
-        deck.setFingerprint(fingerprint);
-
+        // Si no tiene arquetipo calculado, calcularlo ahora usando el classifier
         try {
             if (deck.getArchetype() == null && archetypeClassifier != null) {
                 Archetype type = archetypeClassifier.classify(deck.getPlayerCards());
@@ -98,7 +79,9 @@ public class DeckService {
             throw new RuntimeException("Error al clasificar el arquetipo del deck: " + ignored.getMessage(), ignored);
         }
 
+        // Guardar nuevo deck
         return deckRepository.save(deck);
+        // No hay apiId ni id: simplemente persistir el deck
     }
 }
 
