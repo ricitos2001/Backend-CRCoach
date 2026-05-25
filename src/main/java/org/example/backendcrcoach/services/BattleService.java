@@ -45,10 +45,10 @@ public class BattleService {
     private final GameModeService gameModeService;
     private final WebClientHelper webClientHelper;
     private final DeckService deckService;
-    private final BattleImportService battleImportService;
 
     public BattleService(
             BattleRepository battleRepository,
+            PlayerProfileRepository playerProfileRepository,
             PlayerEntityRepository playerEntityRepository,
             WebClient.Builder builder,
             @Value("${clash.royale.api.url}") String API_URL,
@@ -56,8 +56,7 @@ public class BattleService {
             ArenaService arenaService, ClanService clanService,
             GameModeService gameModeService,
             WebClientHelper webClientHelper,
-            DeckService deckService,
-            BattleImportService battleImportService) {
+            DeckService deckService) {
         this.battleRepository = battleRepository;
         this.playerEntityRepository = playerEntityRepository;
         this.webClient = builder
@@ -70,7 +69,6 @@ public class BattleService {
         this.gameModeService = gameModeService;
         this.webClientHelper = webClientHelper;
         this.deckService = deckService;
-        this.battleImportService = battleImportService;
     }
 
     public BattleResponseDTO createBattle(BattleRequestDTO dto) {
@@ -157,13 +155,9 @@ public class BattleService {
 
         Battle savedBattle = null;
         for (JsonNode node : battlesJson) {
-            try {
-                Battle persistedOrExisting = battleImportService.importSingleBattle(node);
-                if (persistedOrExisting == null) continue;
-                savedBattle = persistedOrExisting;
-            } catch (Exception e) {
-                log.warn("Error importing battle, skipping: {}", e.getMessage());
-            }
+            Battle persistedOrExisting = mapApiResponseToEntity(node);
+            if (persistedOrExisting == null) continue;
+            savedBattle = persistedOrExisting;
         }
 
         if (savedBattle == null) {
@@ -171,10 +165,6 @@ public class BattleService {
             return;
         }
         CompletableFuture.completedFuture(BattleMapper.toDTO(savedBattle));
-    }
-
-    public Battle importSingleBattleFromNode(JsonNode node) {
-        return mapApiResponseToEntity(node);
     }
 
     private Battle mapApiResponseToEntity(JsonNode json) {
