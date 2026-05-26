@@ -12,8 +12,6 @@ import org.springframework.transaction.annotation.Propagation;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,11 +22,9 @@ public class ClanService {
 
     private final ClanRepository clanRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ClanService self;
 
-    public ClanService(ClanRepository clanRepository, @Lazy @Autowired ClanService self) {
+    public ClanService(ClanRepository clanRepository) {
         this.clanRepository = clanRepository;
-        this.self = self;
     }
 
     public ClanResponseDTO createClan(ClanRequestDTO dto) {
@@ -95,13 +91,16 @@ public class ClanService {
             // Ejecutar el INSERT/flush en una transacción nueva para poder capturar
             // correctamente el DataIntegrityViolationException sin marcar la
             // transacción del llamador como rollback-only.
-            return self.saveClanAndFlushInNewTx(clan);
+            return saveClanAndFlushInNewTx(clan);
         } catch (DataIntegrityViolationException dive) {
+            // Condición de carrera: si otro hilo ya insertó el registro, recuperarlo
+            // en una transacción nueva para no utilizar la transacción actual (que
+            // puede estar marcada para rollback).
             Long bid = clan.getBadgeId();
             if (bid != null) {
-                return self.findClanByIdOrTagInNewTx(bid, clan.getTag());
+                return findClanByIdOrTagInNewTx(bid, clan.getTag());
             }
-            return self.findClanByTagInNewTx(clan.getTag());
+            return findClanByTagInNewTx(clan.getTag());
         }
     }
 
