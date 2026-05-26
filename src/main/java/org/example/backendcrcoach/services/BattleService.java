@@ -137,7 +137,6 @@ public class BattleService {
      * Evita duplicados basándose en el campo battleTime.
      * Devuelve el DTO de la última batalla guardada (o null si no se importó ninguna).
      */
-    @Async
     public void importBattlesForPlayer(String playerTag) {
         String responseBody = webClientHelper.fetchGetWithRetries(webClient, "/players/{tag}/battlelog", playerTag);
         if (responseBody == null || responseBody.isBlank()) {
