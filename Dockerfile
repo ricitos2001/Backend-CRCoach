@@ -13,7 +13,8 @@ ENV SPRING_MAIL_USERNAME=""
 ENV SPRING_MAIL_PASSWORD=""
 ENV APP_FRONTEND_BASE_URL=""
 
-ENV PORT=""
+
+ENV PORT=8080
 
 COPY pom.xml .
 COPY src ./src
@@ -24,4 +25,4 @@ WORKDIR /app
 COPY --from=builder /usr/src/app/target/Backend-CRCoach-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java","-Xms256m","-Xmx512m","-XX:+UseG1GC","-jar","/app/app.jar"]
+ENTRYPOINT ["java","-Xms256m","-Xmx512m","-XX:+UseG1GC","-jar","/app/app.jar", "-Dserver.port=${PORT}"]
