@@ -13,8 +13,7 @@ ENV SPRING_MAIL_USERNAME=""
 ENV SPRING_MAIL_PASSWORD=""
 ENV APP_FRONTEND_BASE_URL=""
 
-
-ENV PORT=8080
+ENV PORT=""
 
 COPY pom.xml .
 COPY src ./src
@@ -24,6 +23,5 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=builder /usr/src/app/target/Backend-CRCoach-0.0.1-SNAPSHOT.jar app.jar
 
-ENV PORT=8080
 EXPOSE 8080
 ENTRYPOINT ["java","-Xms256m","-Xmx512m","-XX:+UseG1GC","-jar","/app/app.jar"]
